@@ -5,9 +5,21 @@ use std::fs::{File, read_dir};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Options {
+    /// Path of the LUKS partition
+    ///
+    /// Example: `/dev/nvme0n1p9`
     pub partition_path: PathBuf,
+    /// Name to use for the mapper device
+    ///
+    /// Examples: `e`, `encrypted`, `my-device`
     pub mapper_name: String,
+    /// Path to mount the unlocked LUKS partition
+    ///
+    /// Example: `/mnt/e`
     pub mount_path: PathBuf,
+    /// Optional path to a file containing the LUKS key
+    ///
+    /// Example: `/root/.config/mount_luks/e.key`
     pub key_path: Option<PathBuf>,
 }
 
