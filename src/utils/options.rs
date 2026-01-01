@@ -1,9 +1,9 @@
 use crate::prelude::*;
 use dirs::config_dir;
-use dotenvy::from_path_iter;
-use error_stack::ResultExt;
-use std::collections::HashMap;
+use serde::Deserialize;
+use std::fs::{File, read_dir};
 
+#[derive(Clone, Debug, Deserialize)]
 pub struct Options {
     pub partition_path: PathBuf,
     pub mapper_name: String,
@@ -13,23 +13,23 @@ pub struct Options {
 
 impl Options {
     pub fn read_options() -> Result<Options, Report<OptionsError>> {
-        let path = config_dir()
-            .expect("should be able to get config directory")
-            .join("mount_luks")
-            .join(".env");
-        if !path.exists() {
-            let report =
-                Report::new(OptionsError::NoFile).attach(format!("Path: {}", path.display()));
-            return Err(report);
+        let paths = get_paths()?;
+        trace!(
+            "Found {} options files:\n{}",
+            paths.len(),
+            paths
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        if paths.is_empty() {
+            return Err(Report::new(OptionsError::NoFile));
         }
-        let file = from_path_iter(path).change_context(OptionsError::Read)?;
-        let vars: HashMap<String, String> = file.filter_map(Result::ok).collect();
-        Ok(Options {
-            partition_path: PathBuf::from(get_value(&vars, "PARTITION_PATH")?),
-            mapper_name: get_value(&vars, "MAPPER_NAME")?,
-            mount_path: PathBuf::from(get_value(&vars, "MOUNT_PATH")?),
-            key_path: vars.get("KEY_PATH").map(PathBuf::from),
-        })
+        let path = paths.first().expect("should be at least one options file");
+        trace!("Reading options from: {}", path.display());
+        let file = File::open(path).change_context(OptionsError::Read)?;
+        serde_yaml::from_reader(file).change_context(OptionsError::Deserialize)
     }
 
     pub fn get_mapper_path(&self) -> PathBuf {
@@ -37,24 +37,40 @@ impl Options {
     }
 }
 
-fn get_value(
-    hash_map: &HashMap<String, String>,
-    key: &str,
-) -> Result<String, Report<OptionsError>> {
-    hash_map
-        .get(key)
-        .ok_or_else(|| Report::new(OptionsError::Required).attach(format!("Key: {key}")))
-        .cloned()
+fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
+    let dir = config_dir()
+        .expect("should be able to get config directory")
+        .join("mount_luks");
+    let paths = read_dir(&dir)
+        .change_context(OptionsError::ReadDir)?
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            if let Ok(file_type) = entry.file_type()
+                && !file_type.is_file()
+            {
+                return None;
+            }
+            let path = entry.path();
+            match path.extension()?.to_str()? {
+                "yaml" | "yml" => {}
+                _ => return None,
+            }
+            Some(path)
+        })
+        .collect();
+    Ok(paths)
 }
 
 #[derive(Debug, Error)]
 pub enum OptionsError {
+    #[error("Unable to read config directory")]
+    ReadDir,
     #[error("Options file does not exist")]
     NoFile,
     #[error("Unable to read options file")]
     Read,
-    #[error("Options file is not complete")]
-    Required,
+    #[error("Unable to deserialize options file")]
+    Deserialize,
 }
 
 #[cfg(test)]
@@ -63,8 +79,8 @@ mod tests {
 
     #[test]
     fn _read_options() {
+        assert!(is_root().is_ok(), "Root is required to run this test");
         // Arrange
-
         // Act
         let _options = Options::read_options().expect("Should be able to read options");
 

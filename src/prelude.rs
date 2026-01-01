@@ -1,11 +1,12 @@
 pub use crate::app::app;
-pub use crate::steps::*;
-pub use crate::utils::*;
-pub use error_stack::{Report, bail};
-pub use std::fmt::{Display, Formatter};
-pub use std::path::PathBuf;
-pub use std::process::Command;
-pub use std::sync::Mutex;
-pub use thiserror::Error;
+pub(crate) use crate::steps::*;
+pub(crate) use crate::utils::*;
+pub(crate) use error_stack::ResultExt;
+pub(crate) use error_stack::{Report, bail};
+pub(crate) use std::fmt::{Display, Formatter};
+pub(crate) use std::path::PathBuf;
+pub(crate) use std::process::Command;
+pub(crate) use std::sync::Mutex;
+pub(crate) use thiserror::Error;
 #[allow(unused_imports)]
-pub use tracing::{debug, error, info, trace, warn};
+pub(crate) use tracing::{debug, error, info, trace, warn};
