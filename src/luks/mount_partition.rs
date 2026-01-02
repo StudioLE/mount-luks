@@ -2,20 +2,15 @@ use crate::prelude::*;
 
 pub fn mount_partition(options: &Options) -> Result<(), Report<MountError>> {
     let mapper_path = &options.get_mapper_path();
-    let response = Command::new("mount")
+    Command::new("mount")
         .arg(mapper_path.display().to_string())
         .arg(options.mount_path.display().to_string())
         .output()
         .expect("should be able to execute `mount`")
-        .to_response();
-    if response.status.success() {
-        Ok(())
-    } else {
-        Err(Report::new(MountError).attach_response(response))
-    }
+        .ok_or(MountError)
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Failed to mount partition")]
 pub struct MountError;
 

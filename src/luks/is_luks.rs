@@ -16,7 +16,7 @@ pub fn is_luks_partition(options: &Options) -> Result<(), Report<IsLuksError>> {
     Err(Report::new(IsLuksError::Unexpected).attach_response(response))
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 pub enum IsLuksError {
     #[error("Parition is not encrypted with LUKS")]
     NotLuks,

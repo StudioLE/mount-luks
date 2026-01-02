@@ -23,6 +23,40 @@ partition_path: /dev/nvme0n1p9
 mapper_name: e
 # Path to mount the unlocked LUKS partition
 mount_path: /mnt/e
-# Optional path to a file containing the LUKS key
+# Optional
+# Path to a file containing the LUKS key
+# Ideally this is stored on an external USB device which is removed when not required
 key_path: /root/.config/mount_luks/.key
+# Optional
+# TPM persistent handle address
+tpm_handle: 0x81000000
+# Optional
+# Should an interactive key be required?
+key_prompt: false
+```
+
+Check which persistent handles are already in use:
+
+```shell
+sudo tpm2_getcap handles-persistent
+```
+
+### Set the TPM component of the key
+
+```shell
+mount_luks set-tpm
+```
+
+### Set the LUKS key
+
+You will need to enter an existing LUKS passphrase.
+
+```shell
+mount_luks set-luks
+```
+
+### Unlock and mount the LUKS partition
+
+```shell
+mount_luks
 ```

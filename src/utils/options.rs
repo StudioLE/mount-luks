@@ -3,7 +3,7 @@ use dirs::config_dir;
 use serde::Deserialize;
 use std::fs::{File, read_dir};
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Options {
     /// Path of the LUKS partition
     ///
@@ -19,8 +19,16 @@ pub struct Options {
     pub mount_path: PathBuf,
     /// Optional path to a file containing the LUKS key
     ///
+    /// Ideally this is stored on an external USB device which is removed when not required
+    ///
     /// Example: `/root/.config/mount_luks/e.key`
     pub key_path: Option<PathBuf>,
+    /// Optional TPM persistent handle address
+    ///
+    /// Example: `0x81000000`
+    pub tpm_handle: Option<PersistentHandle>,
+    /// Optional should an interactive key be required?
+    pub key_prompt: Option<bool>,
 }
 
 impl Options {
@@ -73,7 +81,7 @@ fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
     Ok(paths)
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 pub enum OptionsError {
     #[error("Unable to read config directory")]
     ReadDir,

@@ -1,21 +1,16 @@
 use crate::prelude::*;
 
 pub fn check_if_mounted(options: &Options) -> Result<(), Report<AlreadyMounted>> {
-    let response = Command::new("findmnt")
+    Command::new("findmnt")
         .arg("--noheadings")
         .arg(options.mount_path.display().to_string())
         .output()
         .expect("should be able to execute `findmnt`")
-        .to_response();
-    if response.status.success() {
-        Err(Report::new(AlreadyMounted)
-            .attach(format!("Mount point: {}", options.mount_path.display())))
-    } else {
-        Ok(())
-    }
+        .ok_or(AlreadyMounted)
+        .attach_path(&options.mount_path)
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Partition is already mounted")]
 pub struct AlreadyMounted;
 

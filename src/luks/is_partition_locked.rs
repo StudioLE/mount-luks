@@ -3,16 +3,16 @@ use crate::prelude::*;
 pub fn is_partition_locked(options: &Options) -> Result<(), Report<PartitionUnlocked>> {
     let mapper_path = options.get_mapper_path();
     if mapper_path.exists() {
-        Err(Report::new(PartitionUnlocked).attach(format!(
-            "Mapper device already exists: {}",
-            mapper_path.display()
-        )))
+        let report = Report::new(PartitionUnlocked)
+            .attach("Mapper device already exists")
+            .attach_path(&mapper_path);
+        Err(report)
     } else {
         Ok(())
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Partition is already unlocked")]
 pub struct PartitionUnlocked;
 

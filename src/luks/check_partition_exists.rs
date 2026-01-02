@@ -4,11 +4,11 @@ pub fn check_partition_exist(options: &Options) -> Result<(), Report<NoPartition
     if options.partition_path.exists() {
         Ok(())
     } else {
-        Err(Report::new(NoPartition).attach(format!("Path: {}", options.partition_path.display())))
+        Err(Report::new(NoPartition).attach_path(&options.partition_path))
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Parition does not exist")]
 pub struct NoPartition;
 

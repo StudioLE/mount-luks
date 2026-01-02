@@ -9,17 +9,6 @@ pub struct Response {
     pub status: ExitStatus,
 }
 
-impl Response {
-    #[allow(deprecated, dead_code)]
-    pub fn to_result<C: Context>(self, report: Report<C>) -> Result<Response, Report<C>> {
-        if self.status.success() {
-            Ok(self)
-        } else {
-            Err(report.attach_response(self))
-        }
-    }
-}
-
 pub trait AttachResponse {
     fn attach_response(self, response: Response) -> Self;
 }

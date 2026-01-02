@@ -6,7 +6,7 @@ pub fn is_root() -> Result<(), Report<RootRequired>> {
     if is_root { Ok(()) } else { bail!(RootRequired) }
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Root is required")]
 pub struct RootRequired;
 

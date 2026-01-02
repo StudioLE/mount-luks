@@ -4,11 +4,11 @@ pub fn check_mount_exists(options: &Options) -> Result<(), Report<NoMount>> {
     if options.mount_path.exists() {
         Ok(())
     } else {
-        Err(Report::new(NoMount).attach(format!("Path: {}", options.mount_path.display())))
+        Err(Report::new(NoMount).attach_path(&options.mount_path))
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Mount point does not exist")]
 pub struct NoMount;
 

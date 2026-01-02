@@ -1,9 +1,8 @@
 use crate::prelude::*;
 use owo_colors::OwoColorize;
 
-const STEPS_COUNT: usize = 8;
-const CHECK: &str = "  ✓ |";
-const CROSS: &str = "  ⨯ |";
+const CHECK: &str = " ✓ ";
+const CROSS: &str = " ⨯ ";
 
 pub fn print_header(options: &Options) {
     let title = [
@@ -22,6 +21,18 @@ pub fn print_header(options: &Options) {
                 .clone()
                 .map_or(String::new(), |path| path.display().to_string())
         ),
+        format!(
+            "  TPM handle: {}",
+            options
+                .tpm_handle
+                .map_or(String::new(), |handle| handle.to_string())
+        ),
+        format!(
+            "  Key prompt: {}",
+            options
+                .key_prompt
+                .map_or(String::new(), |handle| handle.to_string())
+        ),
     ];
     eprintln!(
         "{}\n{}\n",
@@ -30,10 +41,10 @@ pub fn print_header(options: &Options) {
     );
 }
 
-pub fn print_step_start(mut_counter: &Mutex<usize>, message: &str) {
+pub fn print_step_start(mut_counter: &Mutex<usize>, total_steps: usize, message: &str) {
     let mut i = mut_counter.lock().expect("Should be able to lock mutex");
     *i += 1;
-    info!("{}", format!("{i}/{STEPS_COUNT} | {message}").dimmed());
+    info!("{}", format!("{i}/{total_steps} {message}").dimmed());
 }
 
 pub fn print_step_completed(message: &str) {

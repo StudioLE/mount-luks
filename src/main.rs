@@ -1,10 +1,5 @@
-use crate::prelude::*;
-
-mod app;
-mod prelude;
-mod steps;
-mod utils;
+use mount_luks::prelude::cli;
 
 fn main() {
-    app();
+    cli();
 }
