@@ -8,6 +8,7 @@ pub trait OkOrReport {
 }
 
 impl OkOrReport for Output {
+    #[track_caller]
     fn ok_or<C: Context>(self, context: C) -> Result<(), Report<C>> {
         if self.status.success() {
             Ok(())

@@ -1,13 +1,17 @@
 use crate::prelude::*;
 
 pub fn check_if_mounted(options: &Options) -> Result<(), Report<AlreadyMounted>> {
-    Command::new("findmnt")
+    let response = Command::new("findmnt")
         .arg("--noheadings")
         .arg(options.mount_path.display().to_string())
         .output()
         .expect("should be able to execute `findmnt`")
-        .ok_or(AlreadyMounted)
-        .attach_path(&options.mount_path)
+        .to_response();
+    if response.status.success() {
+        Err(Report::new(AlreadyMounted).attach_path(&options.mount_path))
+    } else {
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Error, PartialEq)]
