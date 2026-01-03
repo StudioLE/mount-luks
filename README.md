@@ -119,6 +119,14 @@ Enter your **existing** LUKS passphrase when prompted.
 sudo mount_luks set-luks
 ```
 
+### Validate the key works
+
+To check the key works you can run the `validate` sub command:
+
+```shell
+sudo mount_luks validate
+```
+
 ### Unlock and mount the LUKS partition
 
 You can now unlock and mount the LUKS partition using the `mount_luks` command:
