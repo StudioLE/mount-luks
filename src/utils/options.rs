@@ -21,7 +21,7 @@ pub struct Options {
     ///
     /// Ideally this is stored on an external USB device which is removed when not required
     ///
-    /// Example: `/root/.config/mount_luks/e.key`
+    /// Example: `/root/.config/mount-luks/e.key`
     pub key_path: Option<PathBuf>,
     /// Optional TPM persistent handle address
     ///
@@ -62,7 +62,7 @@ impl Options {
 fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
     let dir = config_dir()
         .expect("should be able to get config directory")
-        .join("mount_luks");
+        .join("mount-luks");
     let paths = read_dir(&dir)
         .change_context(OptionsError::ReadDir)?
         .filter_map(Result::ok)

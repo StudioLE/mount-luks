@@ -13,8 +13,8 @@ jobs:
     name: CI/CD
     uses: StudioLE/Actions/.github/workflows/ci-cd-dioxus-fullstack.yml@v7
     with:
-      package_name: mount_luks
-      binary_name: mount_luks
+      package_name: mount-luks
+      binary_name: mount-luks
       matrix: |
         [
           {

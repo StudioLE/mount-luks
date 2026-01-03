@@ -1,5 +1,5 @@
 [package]
-name = "mount_luks"
+name = "mount-luks"
 version = "0.1.0"
 edition = "2024"
 

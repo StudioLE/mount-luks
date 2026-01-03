@@ -3,8 +3,6 @@ use std::env::temp_dir;
 use std::fs::create_dir;
 use std::sync::LazyLock;
 
-const APP_NAME: &str = "mount_luks";
-
 #[cfg(test)]
 pub static EXAMPLE_HANDLE: LazyLock<PersistentHandle> =
     LazyLock::new(|| PersistentHandle::new(0x8100FFFF).expect("valid handle"));

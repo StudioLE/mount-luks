@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use strum::Display;
 
 #[derive(Parser)]
-#[command(name = "mount_luks")]
+#[command(name = APP_NAME)]
 #[command(about = "A CLI tool to unlock and mount LUKS encrypted disks", long_about = None)]
 struct Cli {
     #[command(subcommand)]

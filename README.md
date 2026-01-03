@@ -1,4 +1,4 @@
-# `mount_luks`
+# `mount-luks`
 
 ## Overview
 
@@ -43,11 +43,11 @@ The passphrase is concatenated from multiple optional sources ensuring the highe
 
 ### Install
 
-Download the latest binary from [GitHub Releases](https://github.com/StudioLE/mount_luks/releases).
+Download the latest binary from [GitHub Releases](https://github.com/StudioLE/mount-luks/releases).
 
 ### Create an options file
 
-Create an options file with a `.yaml` or `.yml` extension in `/root/.config/mount_luks/` structured as follows:
+Create an options file with a `.yaml` or `.yml` extension in `/root/.config/mount-luks/` structured as follows:
 
 ```yaml
 # Path of the LUKS partition
@@ -59,7 +59,7 @@ mount_path: /mnt/e
 # Optional
 # Path to a file containing the LUKS key
 # Ideally this is stored on an external USB device which is removed when not required
-key_path: /root/.config/mount_luks/.key
+key_path: /root/.config/mount-luks/.key
 # Optional
 # TPM persistent handle address
 tpm_handle: 0x81000000
@@ -79,7 +79,7 @@ sudo tpm2_getcap handles-persistent
 Generate a random key using your preferred method and save it to the `key_path` file.
 
 ```shell
-tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 128 | sudo tee /root/.config/mount_luks/.key > /dev/null
+tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 128 | sudo tee /root/.config/mount-luks/.key > /dev/null
 ```
 
 ### Save the TPM component of the key
@@ -95,7 +95,7 @@ Copy the key to the clipboard.
 Run the `set-tpm` sub command and paste the key when prompted.
 
 ```shell
-sudo mount_luks set-tpm
+sudo mount-luks set-tpm
 ```
 
 ### Save the concatenated key to LUKS
@@ -108,7 +108,7 @@ To check the existing key slots:
 sudo cryptsetup luksDump /dev/nvme0n1p9
 ```
 
-Once you've saved the new key with `mount_luks` you should **NOT** remove your existing passphrase as it will be needed to
+Once you've saved the new key with `mount-luks` you should **NOT** remove your existing passphrase as it will be needed to
 update the TPM data if your secure boot configuration changes.
 
 Run the `set-luks` sub command to save the concatenated key to LUKS.
@@ -116,7 +116,7 @@ Run the `set-luks` sub command to save the concatenated key to LUKS.
 Enter your **existing** LUKS passphrase when prompted.
 
 ```shell
-sudo mount_luks set-luks
+sudo mount-luks set-luks
 ```
 
 ### Validate the key works
@@ -124,13 +124,13 @@ sudo mount_luks set-luks
 To check the key works you can run the `validate` sub command:
 
 ```shell
-sudo mount_luks validate
+sudo mount-luks validate
 ```
 
 ### Unlock and mount the LUKS partition
 
-You can now unlock and mount the LUKS partition using the `mount_luks` command:
+You can now unlock and mount the LUKS partition using the `mount-luks` command:
 
 ```shell
-sudo mount_luks
+sudo mount-luks
 ```
