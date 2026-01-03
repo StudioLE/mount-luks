@@ -43,7 +43,13 @@ The passphrase is concatenated from multiple optional sources ensuring the highe
 
 ### Install
 
-Download the latest binary from [GitHub Releases](https://github.com/StudioLE/mount-luks/releases).
+Install the latest version with homebrew:
+
+```shell
+brew install studiole/tap/mount-luks
+```
+
+Or download the binary from [GitHub Releases](https://github.com/StudioLE/mount-luks/releases).
 
 ### Create an options file
 
