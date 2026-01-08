@@ -7,6 +7,10 @@ use strum::Display;
 #[command(name = APP_NAME)]
 #[command(about = "A CLI tool to unlock and mount LUKS encrypted disks", long_about = None)]
 struct Cli {
+    /// Path to a specific config file
+    #[arg(long)]
+    pub config: Option<PathBuf>,
+
     #[command(subcommand)]
     pub command: Option<SubCommand>,
 }
@@ -38,7 +42,7 @@ pub fn cli() -> ExitCode {
 fn cli_internal() -> Result<(), AnyReport> {
     let cli = Cli::parse();
     init_elapsed_logger();
-    let options = Options::read_options()?;
+    let options = Options::read_options(cli.config)?;
     let command = cli.command.unwrap_or_default();
     if options.no_header != Some(true) {
         print_header(&options, command);

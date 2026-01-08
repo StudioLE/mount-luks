@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn _check_if_mounted() {
         // Arrange
-        let options = Options::read_options().expect("Should be able to read options");
+        let options = Options::read_options(None).expect("Should be able to read options");
 
         // Act
         let result = check_if_mounted(&options);

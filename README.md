@@ -114,7 +114,8 @@ To check the existing key slots:
 sudo cryptsetup luksDump /dev/nvme0n1p9
 ```
 
-Once you've saved the new key with `mount-luks` you should **NOT** remove your existing passphrase as it will be needed to
+Once you've saved the new key with `mount-luks` you should **NOT** remove your existing passphrase as it will be needed
+to
 update the TPM data if your secure boot configuration changes.
 
 Run the `set-luks` sub command to save the concatenated key to LUKS.
@@ -139,4 +140,14 @@ You can now unlock and mount the LUKS partition using the `mount-luks` command:
 
 ```shell
 sudo mount-luks
+```
+
+### Multiple LUKS partitions
+
+If you have multiple LUKS partitions you can create an options file per partition and choose between them with the
+`--config` argument:
+
+```shell
+sudo mount-luks --config /path/to/partition-1.yaml [COMMAND]
+sudo mount-luks --config /path/to/partition-2.yaml [COMMAND]
 ```

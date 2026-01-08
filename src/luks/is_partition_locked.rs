@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn _is_partition_locked() {
         // Arrange
-        let options = Options::read_options().expect("Should be able to read options");
+        let options = Options::read_options(None).expect("Should be able to read options");
 
         // Act
         let result = is_partition_locked(&options);

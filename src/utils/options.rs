@@ -34,31 +34,45 @@ pub struct Options {
 }
 
 impl Options {
-    pub fn read_options() -> Result<Options, Report<OptionsError>> {
-        let paths = get_paths()?;
-        trace!(
-            "Found {} options files:\n{}",
-            paths.len(),
-            paths
-                .iter()
-                .map(|path| path.display().to_string())
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-        match paths.len() {
-            0 => return Err(Report::new(OptionsError::NoFile)),
-            1 => {}
-            _ => return Err(Report::new(OptionsError::MultipleFiles)),
-        }
-        let path = paths.first().expect("should be at least one options file");
+    pub fn read_options(config_path: Option<PathBuf>) -> Result<Options, Report<OptionsError>> {
+        let path = match config_path {
+            Some(path) => path,
+            None => get_default_config_path()?,
+        };
         trace!(path = %path.display(), "Reading options from path");
-        let file = File::open(path).change_context(OptionsError::Read)?;
-        serde_yaml::from_reader(file).change_context(OptionsError::Deserialize)
+        let file = File::open(&path)
+            .change_context(OptionsError::Read)
+            .attach_path(&path)?;
+        serde_yaml::from_reader(file)
+            .change_context(OptionsError::Deserialize)
+            .attach_path(&path)
     }
 
     pub fn get_mapper_path(&self) -> PathBuf {
         PathBuf::from("/dev/mapper").join(&self.mapper_name)
     }
+}
+
+fn get_default_config_path() -> Result<PathBuf, Report<OptionsError>> {
+    let paths = get_paths()?;
+    trace!(
+        "Found {} options files:\n{}",
+        paths.len(),
+        paths
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    match paths.len() {
+        0 => return Err(Report::new(OptionsError::NoFile)),
+        1 => {}
+        _ => return Err(Report::new(OptionsError::MultipleFiles)),
+    }
+    Ok(paths
+        .into_iter()
+        .next()
+        .expect("should be at least one options file"))
 }
 
 fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
@@ -102,14 +116,41 @@ pub enum OptionsError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::write;
 
     #[test]
     fn _read_options() {
         assert!(is_root().is_ok(), "Root is required to run this test");
         // Arrange
         // Act
-        let _options = Options::read_options().expect("Should be able to read options");
+        let _options = Options::read_options(None).expect("Should be able to read options");
 
         // Assert
+    }
+
+    #[test]
+    fn read_options_from_specific_config_file() {
+        // Arrange
+        let dir = TempDirectory::default()
+            .create()
+            .expect("should create temp directory");
+        let mut paths = Vec::new();
+        for i in 1..=3 {
+            let path = dir.join(format!("config{i}.yaml"));
+            let content = format!(
+                "partition_path: /dev/sda{i}\nmapper_name: test-{i}\nmount_path: /mnt/test{i}\n"
+            );
+            write(&path, content).expect("should write config file");
+            paths.push(path);
+        }
+        let target_path = paths.get(1).expect("should have path at index 1").clone();
+
+        // Act
+        let options = Options::read_options(Some(target_path)).expect("should read options");
+
+        // Assert
+        assert_eq!(options.mapper_name, "test-2");
+        assert_eq!(options.partition_path, PathBuf::from("/dev/sda2"));
+        assert_eq!(options.mount_path, PathBuf::from("/mnt/test2"));
     }
 }
