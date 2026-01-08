@@ -1,4 +1,4 @@
 /target
 **/*.rs.bk
 *.snap.new
-CLAUDE.md
+.claude

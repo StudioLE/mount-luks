@@ -45,11 +45,13 @@ impl Options {
                 .collect::<Vec<_>>()
                 .join("\n")
         );
-        if paths.is_empty() {
-            return Err(Report::new(OptionsError::NoFile));
+        match paths.len() {
+            0 => return Err(Report::new(OptionsError::NoFile)),
+            1 => {}
+            _ => return Err(Report::new(OptionsError::MultipleFiles)),
         }
         let path = paths.first().expect("should be at least one options file");
-        trace!("Reading options from: {}", path.display());
+        trace!(path = %path.display(), "Reading options from path");
         let file = File::open(path).change_context(OptionsError::Read)?;
         serde_yaml::from_reader(file).change_context(OptionsError::Deserialize)
     }
@@ -62,7 +64,7 @@ impl Options {
 fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
     let dir = config_dir()
         .expect("should be able to get config directory")
-        .join("mount-luks");
+        .join(APP_NAME);
     let paths = read_dir(&dir)
         .change_context(OptionsError::ReadDir)?
         .filter_map(Result::ok)
@@ -89,6 +91,8 @@ pub enum OptionsError {
     ReadDir,
     #[error("Options file does not exist")]
     NoFile,
+    #[error("Multiple options files found")]
+    MultipleFiles,
     #[error("Unable to read options file")]
     Read,
     #[error("Unable to deserialize options file")]

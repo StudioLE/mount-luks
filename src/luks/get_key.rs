@@ -9,29 +9,29 @@ use std::fs::read_to_string;
 pub fn get_key(options: &Options) -> Result<String, Report<KeyError>> {
     let mut components = Vec::new();
     if let Some(path) = &options.key_path {
-        debug!("Reading key from file: {}", path.display());
+        trace!(path = %path.display(), "Reading key from file");
         let key = read_to_string(path)
             .change_context(KeyError::KeyFile)
             .attach_path(path)?
             .trim()
             .to_owned();
         if key.is_empty() {
-            warn!("Key file is empty");
+            warn!(path = %path.display(), "Key file is empty");
         }
         components.push(key);
     }
     if let Some(handle) = &options.tpm_handle {
-        debug!("Reading key from TPM: {handle}");
+        trace!(%handle, "Reading key from TPM");
         let key = unseal_persistent_object(handle)
             .change_context(KeyError::Tpm)
             .attach_key_value("Handle", &handle.to_string())?;
         if key.is_empty() {
-            warn!("TPM key value is empty");
+            warn!(%handle, "TPM key value is empty");
         }
         components.push(key);
     }
     if options.key_prompt == Some(true) {
-        debug!("Reading key from prompt");
+        trace!("Reading key from prompt");
         let key = prompt_password("Enter interactive key component: ")
             .change_context(KeyError::Prompt)?
             .trim()
