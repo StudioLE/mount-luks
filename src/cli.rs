@@ -11,6 +11,10 @@ struct Cli {
     #[arg(long)]
     pub config: Option<PathBuf>,
 
+    /// Set the log level
+    #[arg(long, value_enum)]
+    pub log_level: Option<LogLevel>,
+
     #[command(subcommand)]
     pub command: Option<SubCommand>,
 }
@@ -41,7 +45,7 @@ pub fn cli() -> ExitCode {
 
 fn cli_internal() -> Result<(), AnyReport> {
     let cli = Cli::parse();
-    init_elapsed_logger();
+    init_elapsed_logger(cli.log_level);
     let options = Options::read_options(cli.config)?;
     let command = cli.command.unwrap_or_default();
     if options.no_header != Some(true) {

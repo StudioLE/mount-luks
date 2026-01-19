@@ -1,6 +1,9 @@
 use std::io::stderr;
 use std::sync::OnceLock;
 use std::time::Instant;
+
+use clap::ValueEnum;
+use strum::Display;
 use tracing::Level;
 use tracing::level_filters::LevelFilter;
 use tracing::subscriber::set_global_default;
@@ -13,11 +16,10 @@ use tracing_subscriber::{Layer, Registry};
 
 static INIT: OnceLock<()> = OnceLock::new();
 
-const DEFAULT_LOG_LEVEL: Level = Level::TRACE;
-
-pub fn init_elapsed_logger() {
+pub fn init_elapsed_logger(log_level: Option<LogLevel>) {
+    let filter = LevelFilter::from(log_level.unwrap_or_default());
     INIT.get_or_init(|| {
-        let targets = get_targets().with_default(LevelFilter::from_level(DEFAULT_LOG_LEVEL));
+        let targets = get_targets().with_default(filter);
         let layer = layer()
             .compact()
             .with_writer(stderr)
@@ -32,6 +34,35 @@ pub fn init_elapsed_logger() {
 #[must_use]
 pub fn get_targets() -> Targets {
     Targets::new()
+}
+
+#[derive(Copy, Clone, Default, Debug, ValueEnum, Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum LogLevel {
+    Error,
+    Warn,
+    #[default]
+    Info,
+    Debug,
+    Trace,
+}
+
+impl From<LogLevel> for Level {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Error => Level::ERROR,
+            LogLevel::Warn => Level::WARN,
+            LogLevel::Info => Level::INFO,
+            LogLevel::Debug => Level::DEBUG,
+            LogLevel::Trace => Level::TRACE,
+        }
+    }
+}
+
+impl From<LogLevel> for LevelFilter {
+    fn from(level: LogLevel) -> Self {
+        LevelFilter::from_level(Level::from(level))
+    }
 }
 
 struct ElapsedTime {
