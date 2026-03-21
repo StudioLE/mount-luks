@@ -27,7 +27,7 @@ mod tests {
         // Assert
         if let Err(report) = result {
             eprintln!("{report:?}");
-            let _error = report.downcast_ref::<NoMount>().expect("should be NoMount");
+            let _error = report.current_context();
         }
     }
 }

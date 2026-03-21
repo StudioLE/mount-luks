@@ -14,7 +14,7 @@ pub fn persist_object(options: &Options) -> Result<(), Report<PersistObjectError
         .output()
         .expect("should be able to execute `tpm2_evictcontrol`")
         .ok_or(PersistObjectError::Failed)
-        .attach_key_value("Handle", &handle.to_string())
+        .attach("Handle", handle)
 }
 
 #[derive(Clone, Copy, Debug, Error, PartialEq)]

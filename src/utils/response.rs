@@ -1,6 +1,5 @@
 use crate::prelude::*;
-#[allow(deprecated)]
-use error_stack::Context;
+use std::error::Error as StdError;
 use std::process::{ExitStatus, Output};
 
 pub struct Response {
@@ -13,17 +12,16 @@ pub trait AttachResponse {
     fn attach_response(self, response: Response) -> Self;
 }
 
-#[allow(deprecated)]
-impl<C: Context> AttachResponse for Report<C> {
+impl<C: StdError + Send + Sync + 'static> AttachResponse for Report<C> {
     fn attach_response(mut self, response: Response) -> Self {
         if let Some(message) = response.error {
-            self = self.attach(format!("stderr: {message}"));
+            self = self.attach("stderr", message);
         }
         if let Some(message) = response.output {
-            self = self.attach(format!("stdout: {message}"));
+            self = self.attach("stdout", message);
         }
         if let Some(code) = response.status.code() {
-            self = self.attach(format!("exit: {code}"));
+            self = self.attach("exit", code);
         }
         self
     }

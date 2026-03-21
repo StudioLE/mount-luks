@@ -24,7 +24,7 @@ pub fn get_key(options: &Options) -> Result<String, Report<KeyError>> {
         trace!(%handle, "Reading key from TPM");
         let key = unseal_persistent_object(handle)
             .change_context(KeyError::Tpm)
-            .attach_key_value("Handle", &handle.to_string())?;
+            .attach("Handle", handle)?;
         if key.is_empty() {
             warn!(%handle, "TPM key value is empty");
         }

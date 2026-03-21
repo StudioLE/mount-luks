@@ -15,7 +15,7 @@ fn add_key_internal(options: &Options, key: &str) -> Result<(), Report<KeyError>
     debug!("Key is {} characters", key.len());
     let existing = prompt_password("Enter existing passphrase: ")
         .change_context(KeyError::Add)
-        .attach("Failed to read existing passphrase")?;
+        .attach("detail", "Failed to read existing passphrase")?;
     let input = [&existing, key, key].join("\n");
     Command::new("cryptsetup")
         .arg("luksAddKey")

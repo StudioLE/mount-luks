@@ -11,7 +11,7 @@ pub fn is_luks_partition(options: &Options) -> Result<(), Report<IsLuksError>> {
         return Ok(());
     }
     if response.output.is_none() && response.error.is_none() {
-        bail!(IsLuksError::NotLuks);
+        return Err(Report::new(IsLuksError::NotLuks));
     }
     Err(Report::new(IsLuksError::Unexpected).attach_response(response))
 }

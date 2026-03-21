@@ -1,30 +1,26 @@
 use crate::prelude::*;
-use std::fmt::Debug;
 
 #[derive(Clone)]
 pub struct AnyReport {
-    debug: String,
+    rendered: String,
 }
 
-#[allow(clippy::absolute_paths)]
-impl<T: std::error::Error> From<Report<T>> for AnyReport {
+impl<T: StdError + Send + Sync + 'static> From<Report<T>> for AnyReport {
     fn from(report: Report<T>) -> Self {
         Self {
-            debug: format!("{report:?}"),
+            rendered: report.render(),
         }
     }
 }
 
-#[allow(clippy::absolute_paths)]
 impl Debug for AnyReport {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.debug)
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.rendered)
     }
 }
 
-#[allow(clippy::absolute_paths)]
 impl Display for AnyReport {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.debug)
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.rendered)
     }
 }

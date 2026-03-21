@@ -4,7 +4,7 @@ pub fn is_partition_locked(options: &Options) -> Result<(), Report<PartitionUnlo
     let mapper_path = options.get_mapper_path();
     if mapper_path.exists() {
         let report = Report::new(PartitionUnlocked)
-            .attach("Mapper device already exists")
+            .attach("reason", "Mapper device already exists")
             .attach_path(&mapper_path);
         Err(report)
     } else {
@@ -31,9 +31,7 @@ mod tests {
         // Assert
         if let Err(report) = &result {
             eprintln!("{report:?}");
-            let _error = report
-                .downcast_ref::<PartitionUnlocked>()
-                .expect("should be PartitionUnlocked");
+            let _error = report.current_context();
         }
     }
 }

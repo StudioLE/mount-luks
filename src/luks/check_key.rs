@@ -1,6 +1,5 @@
 use crate::luks::KeyError;
 use crate::prelude::*;
-use error_stack::Report;
 use std::process::{Command, Stdio};
 
 pub fn check_key(options: &Options, key: &str) -> Result<(), Report<KeyError>> {

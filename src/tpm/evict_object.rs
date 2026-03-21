@@ -11,7 +11,7 @@ pub fn evict_object(handle: PersistentHandle) -> Result<(), Report<EvictObjectEr
         .output()
         .expect("should be able to execute `tpm2_evictcontrol`")
         .ok_or(EvictObjectError)
-        .attach_key_value("Handle", &handle.to_string())
+        .attach("Handle", handle)
 }
 
 #[derive(Clone, Copy, Debug, Error, PartialEq)]

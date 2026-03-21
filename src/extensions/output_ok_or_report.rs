@@ -1,15 +1,14 @@
-#![allow(deprecated)]
 use crate::prelude::*;
-use error_stack::Context;
+use std::error::Error as StdError;
 use std::process::Output;
 
 pub trait OkOrReport {
-    fn ok_or<C: Context>(self, context: C) -> Result<(), Report<C>>;
+    fn ok_or<C: StdError + Send + Sync + 'static>(self, context: C) -> Result<(), Report<C>>;
 }
 
 impl OkOrReport for Output {
     #[track_caller]
-    fn ok_or<C: Context>(self, context: C) -> Result<(), Report<C>> {
+    fn ok_or<C: StdError + Send + Sync + 'static>(self, context: C) -> Result<(), Report<C>> {
         if self.status.success() {
             Ok(())
         } else {

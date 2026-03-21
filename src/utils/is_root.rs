@@ -3,7 +3,11 @@ use nix::unistd::Uid;
 
 pub fn is_root() -> Result<(), Report<RootRequired>> {
     let is_root = Uid::effective().is_root();
-    if is_root { Ok(()) } else { bail!(RootRequired) }
+    if is_root {
+        Ok(())
+    } else {
+        Err(Report::new(RootRequired))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Error, PartialEq)]

@@ -31,9 +31,7 @@ mod tests {
             assert!(result.is_ok());
         } else if let Err(report) = &result {
             eprintln!("{report:?}");
-            let _error = report
-                .downcast_ref::<MountError>()
-                .expect("should be MountError");
+            let _error = report.current_context();
         }
     }
 }

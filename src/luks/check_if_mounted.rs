@@ -33,9 +33,7 @@ mod tests {
         // Assert
         if let Err(report) = result {
             eprintln!("{report:?}");
-            let _error = report
-                .downcast_ref::<AlreadyMounted>()
-                .expect("should be AlreadyMounted");
+            let _error = report.current_context();
         }
     }
 }

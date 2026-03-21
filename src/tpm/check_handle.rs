@@ -5,8 +5,7 @@ pub fn check_handle(options: &Options) -> Result<(), Report<CheckHandleError>> {
     let target_handle = options.tpm_handle.unwrap_or_default();
     let handles = get_handles()?;
     if handles.contains(&target_handle) {
-        let report = Report::new(CheckHandleError::HandleInUse)
-            .attach_key_value("Handle", &target_handle.to_string());
+        let report = Report::new(CheckHandleError::HandleInUse).attach("Handle", target_handle);
         Err(report)
     } else {
         Ok(())
