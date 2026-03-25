@@ -1,3 +1,5 @@
+//! Extension traits for standard library types.
+
 mod output_ok_or_report;
 mod write_to_stdin;
 

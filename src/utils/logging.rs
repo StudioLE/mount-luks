@@ -1,3 +1,4 @@
+use std::fmt::Result as FmtResult;
 use std::io::stderr;
 use std::sync::OnceLock;
 use std::time::Instant;
@@ -16,6 +17,10 @@ use tracing_subscriber::{Layer, Registry};
 
 static INIT: OnceLock<()> = OnceLock::new();
 
+/// Initialize the global tracing subscriber with an elapsed-time timer.
+///
+/// - Uses the provided `log_level`, defaulting to [`LogLevel::Info`] if `None`
+/// - Safe to call multiple times; subsequent calls are no-ops
 pub fn init_elapsed_logger(log_level: Option<LogLevel>) {
     let filter = LevelFilter::from(log_level.unwrap_or_default());
     INIT.get_or_init(|| {
@@ -31,11 +36,13 @@ pub fn init_elapsed_logger(log_level: Option<LogLevel>) {
     });
 }
 
+/// Get the base tracing target filter with no crate-specific rules applied.
 #[must_use]
 pub fn get_targets() -> Targets {
     Targets::new()
 }
 
+/// Log verbosity level for the CLI.
 #[derive(Copy, Clone, Default, Debug, ValueEnum, Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum LogLevel {
@@ -78,8 +85,7 @@ impl Default for ElapsedTime {
 }
 
 impl FormatTime for ElapsedTime {
-    #[allow(clippy::absolute_paths)]
-    fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
+    fn format_time(&self, w: &mut Writer<'_>) -> FmtResult {
         let elapsed = self.start.elapsed();
         write!(w, "{:.3}", elapsed.as_secs_f64())
     }

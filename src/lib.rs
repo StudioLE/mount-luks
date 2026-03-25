@@ -1,6 +1,8 @@
+//! CLI tool for unlocking and mounting LUKS encrypted partitions.
+
+mod adapters;
 mod cli;
 mod extensions;
-mod luks;
+mod handlers;
 pub mod prelude;
-pub mod tpm;
 mod utils;

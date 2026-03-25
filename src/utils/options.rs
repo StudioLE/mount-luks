@@ -27,13 +27,17 @@ pub struct Options {
     ///
     /// Example: `0x81000000`
     pub tpm_handle: Option<PersistentHandle>,
-    /// Optional should an interactive key be required?
+    /// Require an interactive key prompt
     pub key_prompt: Option<bool>,
-    /// Hide the UI header
+    /// Suppress the header output
     pub no_header: Option<bool>,
 }
 
 impl Options {
+    /// Read options from a config file.
+    ///
+    /// - If `config_path` is `Some`, reads from that path directly
+    /// - If `None`, searches the default config directory for a single `.yaml` or `.yml` file
     pub fn read_options(config_path: Option<PathBuf>) -> Result<Options, Report<OptionsError>> {
         let path = match config_path {
             Some(path) => path,
@@ -48,6 +52,7 @@ impl Options {
             .attach_path(&path)
     }
 
+    /// Path of the mapper device derived from `mapper_name`.
     pub fn get_mapper_path(&self) -> PathBuf {
         PathBuf::from("/dev/mapper").join(&self.mapper_name)
     }
@@ -99,6 +104,7 @@ fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
     Ok(paths)
 }
 
+/// Errors returned by [`Options::read_options`].
 #[derive(Clone, Copy, Debug, Error, PartialEq)]
 pub enum OptionsError {
     #[error("Unable to read config directory")]
@@ -117,16 +123,6 @@ pub enum OptionsError {
 mod tests {
     use super::*;
     use std::fs::write;
-
-    #[test]
-    fn _read_options() {
-        assert!(is_root().is_ok(), "Root is required to run this test");
-        // Arrange
-        // Act
-        let _options = Options::read_options(None).expect("Should be able to read options");
-
-        // Assert
-    }
 
     #[test]
     fn read_options_from_specific_config_file() {

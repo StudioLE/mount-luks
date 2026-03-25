@@ -1,7 +1,9 @@
 use std::io::Write;
 use std::process::Child;
 
+/// Write a string to the stdin of a child process.
 pub trait WriteToStdin {
+    /// Write `input` to stdin and return `self`.
     fn write_to_stdin(self, input: &str) -> Self;
 }
 

@@ -2,13 +2,19 @@ use crate::prelude::*;
 use std::error::Error as StdError;
 use std::process::{ExitStatus, Output};
 
+/// Captured output from a child process.
 pub struct Response {
+    /// Trimmed stderr output, or `None` if empty.
     pub error: Option<String>,
+    /// Trimmed stdout output, or `None` if empty.
     pub output: Option<String>,
+    /// Exit status of the process.
     pub status: ExitStatus,
 }
 
+/// Attach a [`Response`] to an error report as structured context.
 pub trait AttachResponse {
+    /// Attach stderr, stdout, and exit code from `response` as key-value pairs.
     fn attach_response(self, response: Response) -> Self;
 }
 
@@ -27,7 +33,9 @@ impl<C: StdError + Send + Sync + 'static> AttachResponse for Report<C> {
     }
 }
 
+/// Convert a value into a [`Response`].
 pub trait ToResponse {
+    /// Convert `self` into a [`Response`].
     fn to_response(self) -> Response;
 }
 

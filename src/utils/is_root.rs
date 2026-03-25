@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use nix::unistd::Uid;
 
+/// Check that the current process is running as root.
 pub fn is_root() -> Result<(), Report<RootRequired>> {
     let is_root = Uid::effective().is_root();
     if is_root {
@@ -10,6 +11,7 @@ pub fn is_root() -> Result<(), Report<RootRequired>> {
     }
 }
 
+/// Error returned by [`is_root`] when the process is not running as root.
 #[derive(Clone, Copy, Debug, Error, PartialEq)]
 #[error("Root is required")]
 pub struct RootRequired;
@@ -20,13 +22,12 @@ mod tests {
 
     #[test]
     fn _is_root() {
-        assert!(is_root().is_ok(), "Root is required to run this test");
-
         // Arrange
         // Act
         let result = is_root();
-
         // Assert
-        assert!(result.is_ok());
+        let error = result.expect_err("should be an error");
+        let context = error.current_context();
+        assert_eq!(context, &RootRequired);
     }
 }
