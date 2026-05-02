@@ -152,6 +152,10 @@ sudo mount-luks --config /path/to/partition-1.yaml [COMMAND]
 sudo mount-luks --config /path/to/partition-2.yaml [COMMAND]
 ```
 
+## Run at boot
+
+To run `mount-luks` automatically at boot as a systemd service, see [docs/SERVICE.md](docs/SERVICE.md).
+
 ## Troubleshooting
 
 ### Secure boot changes
