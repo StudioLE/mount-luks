@@ -171,17 +171,19 @@ The TPM component of the key uses PCR 7 to verify the secure boot configuration.
 Therefore if your secure boot configuration changes you will see the following error:
 
 ```
-Unable to read key from TPM
-├╴at src/luks/get_key.rs:26:14
-├╴Handle: 0x81000000
-│
+0.033  INFO 5/8 Unlocking LUKS partition
+0.123 ERROR  ⨯  Unable to continue
+
+mount_luks::GetKeyError::Tpm
+
+× Unable to read key from TPM
+│ ▷ Handle: 0x81000000
 ╰─▶ Unable to unseal TPM object
-    ├╴at src/tpm/unseal_object.rs:33:20
-    ├╴stderr: WARNING:esys:src/tss2-esys/api/Esys_Unseal.c:295:Esys_Unseal_Finish() Received TPM Error
-    │ ERROR:esys:src/tss2-esys/api/Esys_Unseal.c:98:Esys_Unseal() Esys Finish ErrorCode (0x0000099d)
-    │ ERROR: Esys_Unseal(0x99D) - tpm:session(1):a policy check failed
-    │ ERROR: Unable to run tpm2_unseal
-    ╰╴exit: 1
+▷ stderr: WARNING:esys:src/tss2-esys/api/Esys_Unseal.c:295:Esys_Unseal_Finish() Received TPM Error
+ERROR:esys:src/tss2-esys/api/Esys_Unseal.c:98:Esys_Unseal() Esys Finish ErrorCode (0x0000099d)
+ERROR: Esys_Unseal(0x99D) - tpm:session(1):a policy check failed
+ERROR: Unable to run tpm2_unseal
+▷ exit: 1
 ```
 
 To fix this you will need to re-save the TPM component of the key.
