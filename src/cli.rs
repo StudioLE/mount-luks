@@ -37,7 +37,7 @@ pub enum SubCommand {
 pub fn cli() -> ExitCode {
     if let Err(e) = cli_internal() {
         print_error("Unable to continue");
-        eprintln!("\n{e}");
+        eprintln!("\n{}", e.render());
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
