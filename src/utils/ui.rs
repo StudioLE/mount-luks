@@ -13,7 +13,7 @@ pub fn print_header(options: &Options, command: SubCommand) {
     ];
     let body = [
         format!("     Command: {command}"),
-        format!("   Partition: {}", options.partition_path.display()),
+        format!("   Partition: {}", options.partuuid),
         format!(" Mapper path: {}", options.get_mapper_path().display()),
         format!("  Mount path: {}", options.mount_path.display()),
         format!("    Key path: {}", display_path_option(&options.key_path)),

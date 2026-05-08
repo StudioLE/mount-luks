@@ -4,10 +4,10 @@ use crate::prelude::*;
 
 /// Handler for validating a LUKS key against a partition.
 pub struct ValidateHandler {
-    /// Configuration options for the validate operation.
-    options: Arc<Options>,
     /// Adapter for checking root privileges.
     is_root: Arc<dyn IsRoot>,
+    /// Adapter for resolving PARTUUID to a device path.
+    resolve_partition: Arc<dyn ResolvePartition>,
     /// Adapter for checking if a key is valid for a LUKS partition.
     check_key: Arc<dyn CheckKey>,
     /// Adapter for retrieving the composite key.
@@ -18,8 +18,8 @@ impl FromServices for ValidateHandler {
     type Error = ResolveError;
     fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
         Ok(Self {
-            options: services.get::<Options>()?,
             is_root: services.get_trait::<dyn IsRoot>()?,
+            resolve_partition: services.get_trait::<dyn ResolvePartition>()?,
             check_key: services.get_trait::<dyn CheckKey>()?,
             get_key: services.get_trait::<dyn GetKey>()?,
         })
@@ -30,11 +30,18 @@ impl ValidateHandler {
     /// Execute the validate workflow.
     pub fn execute(&self) -> Result<(), StructuredError> {
         let counter = Mutex::new(0);
-        let total_steps = 3;
+        let total_steps = 4;
 
         print_step_start(&counter, total_steps, "Checking if root");
         self.is_root.is_root().map_err(StructuredError::from)?;
         print_step_completed("Access granted");
+
+        print_step_start(&counter, total_steps, "Resolving partition");
+        let partition = self
+            .resolve_partition
+            .resolve_partition()
+            .map_err(StructuredError::from)?;
+        print_step_completed(&format!("Resolved to {}", partition.display()));
 
         print_step_start(&counter, total_steps, "Getting key");
         let key = self.get_key.get().map_err(StructuredError::from)?;
@@ -42,7 +49,7 @@ impl ValidateHandler {
 
         print_step_start(&counter, total_steps, "Validating key against partition");
         self.check_key
-            .check_key(&self.options.partition_path, &key)
+            .check_key(&partition, &key)
             .map_err(StructuredError::from)?;
         print_step_completed("Key is valid");
 
@@ -54,9 +61,12 @@ impl ValidateHandler {
 impl ValidateHandler {
     /// Create a [`ValidateHandler`] with all adapters succeeding by default.
     pub fn mock() -> Self {
-        let options = tests::make_options();
         let mut is_root = MockIsRoot::new();
         is_root.expect_is_root().returning(|| Ok(()));
+        let mut resolve_partition = MockResolvePartition::new();
+        resolve_partition
+            .expect_resolve_partition()
+            .returning(|| Ok(PathBuf::from("/dev/fake-partition")));
         let mut check_key = MockCheckKey::new();
         check_key.expect_check_key().returning(|_, _| Ok(()));
         let mut get_key = MockGetKey::new();
@@ -64,8 +74,8 @@ impl ValidateHandler {
             .expect_get()
             .returning(|| Ok(String::from("test-key")));
         Self {
-            options,
             is_root: Arc::new(is_root),
+            resolve_partition: Arc::new(resolve_partition),
             check_key: Arc::new(check_key),
             get_key: Arc::new(get_key),
         }
@@ -75,14 +85,6 @@ impl ValidateHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    pub fn make_options() -> Arc<Options> {
-        Arc::new(Options {
-            partition_path: PathBuf::from("/dev/fake"),
-            key_prompt: Some(true),
-            ..Options::default()
-        })
-    }
 
     #[test]
     fn validate_succeeds_with_valid_key() {

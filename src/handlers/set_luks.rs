@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 /// Handler for adding a new key to a LUKS partition.
 pub struct SetLuksHandler {
-    /// Configuration options for the set-luks operation.
-    options: Arc<Options>,
     /// Adapter for checking root privileges.
     is_root: Arc<dyn IsRoot>,
     /// Adapter for checking if a partition is LUKS encrypted.
@@ -18,22 +16,21 @@ pub struct SetLuksHandler {
     get_key: Arc<dyn GetKey>,
     /// Adapter for prompting for a password.
     prompt: Arc<dyn PromptPassword>,
-    /// Adapter for checking partition device existence.
-    check_partition: Arc<dyn CheckPartitionExists>,
+    /// Adapter for resolving PARTUUID to a device path.
+    resolve_partition: Arc<dyn ResolvePartition>,
 }
 
 impl FromServices for SetLuksHandler {
     type Error = ResolveError;
     fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
         Ok(Self {
-            options: services.get::<Options>()?,
             is_root: services.get_trait::<dyn IsRoot>()?,
             is_luks: services.get_trait::<dyn IsLuks>()?,
             check_key: services.get_trait::<dyn CheckKey>()?,
             add_key: services.get_trait::<dyn AddKey>()?,
             get_key: services.get_trait::<dyn GetKey>()?,
             prompt: services.get_trait::<dyn PromptPassword>()?,
-            check_partition: services.get_trait::<dyn CheckPartitionExists>()?,
+            resolve_partition: services.get_trait::<dyn ResolvePartition>()?,
         })
     }
 }
@@ -48,11 +45,12 @@ impl SetLuksHandler {
         self.is_root.is_root().map_err(StructuredError::from)?;
         print_step_completed("Access granted");
 
-        print_step_start(&counter, total_steps, "Checking if partition exists");
-        self.check_partition
-            .check_partition_exists()
+        print_step_start(&counter, total_steps, "Resolving partition");
+        let partition = self
+            .resolve_partition
+            .resolve_partition()
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition exists");
+        print_step_completed(&format!("Resolved to {}", partition.display()));
 
         print_step_start(
             &counter,
@@ -60,7 +58,7 @@ impl SetLuksHandler {
             "Checking if partition is encrypted with LUKS",
         );
         self.is_luks
-            .is_luks(&self.options.partition_path)
+            .is_luks(&partition)
             .map_err(StructuredError::from)?;
         print_step_completed("Partition is encrypted with LUKS");
 
@@ -69,14 +67,8 @@ impl SetLuksHandler {
         print_step_completed("New key retrieved");
 
         print_step_start(&counter, total_steps, "Checking if key already exists");
-        if self
-            .check_key
-            .check_key(&self.options.partition_path, &new_key)
-            .is_ok()
-        {
-            return Err(Report::new(KeyAlreadyExists)
-                .attach_path(&self.options.partition_path)
-                .into());
+        if self.check_key.check_key(&partition, &new_key).is_ok() {
+            return Err(Report::new(KeyAlreadyExists).attach_path(&partition).into());
         }
         print_step_completed("Key does not already exist");
 
@@ -86,11 +78,7 @@ impl SetLuksHandler {
             .prompt("Enter existing passphrase: ")
             .map_err(StructuredError::from)?;
         self.add_key
-            .add_key(
-                &self.options.partition_path,
-                existing_passphrase.trim(),
-                &new_key,
-            )
+            .add_key(&partition, existing_passphrase.trim(), &new_key)
             .map_err(StructuredError::from)?;
         print_step_completed("New key added to partition");
 
@@ -107,7 +95,6 @@ pub struct KeyAlreadyExists;
 impl SetLuksHandler {
     /// Create a [`SetLuksHandler`] with all adapters succeeding by default.
     pub fn mock() -> Self {
-        let options = tests::make_options();
         let mut is_root = MockIsRoot::new();
         is_root.expect_is_root().returning(|| Ok(()));
         let mut is_luks = MockIsLuks::new();
@@ -126,19 +113,18 @@ impl SetLuksHandler {
         prompt
             .expect_prompt()
             .returning(|_| Ok(String::from("passphrase")));
-        let mut check_partition = MockCheckPartitionExists::new();
-        check_partition
-            .expect_check_partition_exists()
-            .returning(|| Ok(()));
+        let mut resolve_partition = MockResolvePartition::new();
+        resolve_partition
+            .expect_resolve_partition()
+            .returning(|| Ok(PathBuf::from("/dev/fake-partition")));
         Self {
-            options,
             is_root: Arc::new(is_root),
             is_luks: Arc::new(is_luks),
             check_key: Arc::new(check_key),
             add_key: Arc::new(add_key),
             get_key: Arc::new(get_key),
             prompt: Arc::new(prompt),
-            check_partition: Arc::new(check_partition),
+            resolve_partition: Arc::new(resolve_partition),
         }
     }
 }
@@ -146,14 +132,6 @@ impl SetLuksHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    pub fn make_options() -> Arc<Options> {
-        Arc::new(Options {
-            partition_path: PathBuf::from("/dev/fake-partition"),
-            key_prompt: Some(true),
-            ..Options::default()
-        })
-    }
 
     #[test]
     fn set_luks_succeeds() {

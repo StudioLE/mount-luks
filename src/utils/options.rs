@@ -5,10 +5,10 @@ use std::fs::{File, read_dir};
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Options {
-    /// Path of the LUKS partition
+    /// GPT PARTUUID of the LUKS partition
     ///
-    /// Example: `/dev/nvme0n1p9`
-    pub partition_path: PathBuf,
+    /// Example: `a1479a4b-5074-4454-8161-d4ba58f6e4d3`
+    pub partuuid: String,
     /// Name to use for the mapper device
     ///
     /// Examples: `e`, `encrypted`, `my-device`
@@ -133,9 +133,8 @@ mod tests {
         let mut paths = Vec::new();
         for i in 1..=3 {
             let path = dir.join(format!("config{i}.yaml"));
-            let content = format!(
-                "partition_path: /dev/sda{i}\nmapper_name: test-{i}\nmount_path: /mnt/test{i}\n"
-            );
+            let content =
+                format!("partuuid: uuid-{i}\nmapper_name: test-{i}\nmount_path: /mnt/test{i}\n");
             write(&path, content).expect("should write config file");
             paths.push(path);
         }
@@ -146,7 +145,7 @@ mod tests {
 
         // Assert
         assert_eq!(options.mapper_name, "test-2");
-        assert_eq!(options.partition_path, PathBuf::from("/dev/sda2"));
+        assert_eq!(options.partuuid, "uuid-2");
         assert_eq!(options.mount_path, PathBuf::from("/mnt/test2"));
     }
 }

@@ -93,7 +93,7 @@ fn services(options: Options) -> ServiceProvider {
         .with_trait::<dyn MountPartition, MountAdapter>()
         .with_trait::<dyn PromptPassword, RpasswordAdapter>()
         .with_trait::<dyn GetKey, GetKeyAdapter>()
-        .with_trait::<dyn CheckPartitionExists, PartitionExistsAdapter>()
+        .with_trait::<dyn ResolvePartition, ResolvePartitionAdapter>()
         .with_trait::<dyn CheckMountExists, MountExistsAdapter>()
         .with_trait::<dyn IsPartitionLocked, PartitionLockedAdapter>()
         .with_type::<MountHandler>()

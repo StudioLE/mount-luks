@@ -7,6 +7,7 @@ mod is_root;
 mod mount_partition;
 mod paths;
 mod prompt_password;
+mod resolve_partition;
 mod tpm2;
 
 pub use cryptsetup::*;
@@ -16,4 +17,5 @@ pub use is_root::*;
 pub use mount_partition::*;
 pub use paths::*;
 pub use prompt_password::*;
+pub use resolve_partition::*;
 pub use tpm2::*;

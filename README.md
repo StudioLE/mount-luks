@@ -56,8 +56,8 @@ Or download the binary from [GitHub Releases](https://github.com/StudioLE/mount-
 Create an options file with a `.yaml` or `.yml` extension in `/root/.config/mount-luks/` structured as follows:
 
 ```yaml
-# Path of the LUKS partition
-partition_path: /dev/nvme0n1p9
+# GPT PARTUUID of the LUKS partition
+partuuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 # Name to use for the mapper device
 mapper_name: e
 # Path to mount the unlocked LUKS partition
@@ -72,6 +72,12 @@ tpm_handle: 0x81000000
 # Optional
 # Should an interactive key be required?
 key_prompt: false
+```
+
+To find the PARTUUID of your partition:
+
+```shell
+sudo lsblk -o NAME,PARTUUID,SIZE,FSTYPE,LABEL | grep crypto_LUKSy
 ```
 
 The `tpm_handle` must be unique and is ideally sequentially, so check which persistent handles are already in use:
@@ -111,7 +117,7 @@ LUKS has multiple keyslots so your existing passphrase will not be replaced or o
 To check the existing key slots:
 
 ```shell
-sudo cryptsetup luksDump /dev/nvme0n1p9
+sudo cryptsetup luksDump /dev/nvme0n1pX
 ```
 
 Once you've saved the new key with `mount-luks` you should **NOT** remove your existing passphrase as it will be needed

@@ -18,8 +18,8 @@ pub struct MountHandler {
     mount: Arc<dyn MountPartition>,
     /// Adapter for retrieving the composite key.
     get_key: Arc<dyn GetKey>,
-    /// Adapter for checking partition device existence.
-    check_partition: Arc<dyn CheckPartitionExists>,
+    /// Adapter for resolving PARTUUID to a device path.
+    resolve_partition: Arc<dyn ResolvePartition>,
     /// Adapter for checking mount point existence.
     check_mount: Arc<dyn CheckMountExists>,
     /// Adapter for checking if the partition is locked.
@@ -37,7 +37,7 @@ impl FromServices for MountHandler {
             find_mount: services.get_trait::<dyn FindMount>()?,
             mount: services.get_trait::<dyn MountPartition>()?,
             get_key: services.get_trait::<dyn GetKey>()?,
-            check_partition: services.get_trait::<dyn CheckPartitionExists>()?,
+            resolve_partition: services.get_trait::<dyn ResolvePartition>()?,
             check_mount: services.get_trait::<dyn CheckMountExists>()?,
             is_locked: services.get_trait::<dyn IsPartitionLocked>()?,
         })
@@ -54,11 +54,12 @@ impl MountHandler {
         self.is_root.is_root().map_err(StructuredError::from)?;
         print_step_completed("Access granted");
 
-        print_step_start(&counter, total_steps, "Checking if partition exists");
-        self.check_partition
-            .check_partition_exists()
+        print_step_start(&counter, total_steps, "Resolving partition");
+        let partition = self
+            .resolve_partition
+            .resolve_partition()
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition exists");
+        print_step_completed(&format!("Resolved to {}", partition.display()));
 
         print_step_start(
             &counter,
@@ -66,7 +67,7 @@ impl MountHandler {
             "Checking if partition is encrypted with LUKS",
         );
         self.is_luks
-            .is_luks(&self.options.partition_path)
+            .is_luks(&partition)
             .map_err(StructuredError::from)?;
         print_step_completed("Partition is encrypted with LUKS");
 
@@ -83,11 +84,7 @@ impl MountHandler {
         print_step_start(&counter, total_steps, "Unlocking LUKS partition");
         let key = self.get_key.get().map_err(StructuredError::from)?;
         self.unlock
-            .unlock(
-                &self.options.partition_path,
-                &self.options.mapper_name,
-                &key,
-            )
+            .unlock(&partition, &self.options.mapper_name, &key)
             .map_err(StructuredError::from)?;
         print_step_completed("Unlocked LUKS partition");
 
@@ -133,10 +130,10 @@ impl MountHandler {
         get_key
             .expect_get()
             .returning(|| Ok(String::from("test-key")));
-        let mut check_partition = MockCheckPartitionExists::new();
-        check_partition
-            .expect_check_partition_exists()
-            .returning(|| Ok(()));
+        let mut resolve_partition = MockResolvePartition::new();
+        resolve_partition
+            .expect_resolve_partition()
+            .returning(|| Ok(PathBuf::from("/dev/fake-partition")));
         let mut check_mount = MockCheckMountExists::new();
         check_mount.expect_check_mount_exists().returning(|| Ok(()));
         let mut is_locked = MockIsPartitionLocked::new();
@@ -149,7 +146,7 @@ impl MountHandler {
             find_mount: Arc::new(find_mount),
             mount: Arc::new(mount),
             get_key: Arc::new(get_key),
-            check_partition: Arc::new(check_partition),
+            resolve_partition: Arc::new(resolve_partition),
             check_mount: Arc::new(check_mount),
             is_locked: Arc::new(is_locked),
         }
@@ -162,7 +159,7 @@ mod tests {
 
     pub fn make_options() -> Arc<Options> {
         Arc::new(Options {
-            partition_path: PathBuf::from("/dev/fake-partition"),
+            partuuid: String::from("fake-uuid"),
             mapper_name: String::from("fake-mapper"),
             mount_path: PathBuf::from("/mnt/fake-mount"),
             key_prompt: Some(true),
