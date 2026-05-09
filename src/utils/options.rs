@@ -3,6 +3,7 @@ use dirs::config_dir;
 use serde::Deserialize;
 use std::fs::{File, read_dir};
 
+/// LUKS partition configuration loaded from YAML.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Options {
     /// GPT PARTUUID of the LUKS partition
@@ -34,22 +35,14 @@ pub struct Options {
 }
 
 impl Options {
-    /// Read options from a config file.
-    ///
-    /// - If `config_path` is `Some`, reads from that path directly
-    /// - If `None`, searches the default config directory for a single `.yaml` or `.yml` file
-    pub fn read_options(config_path: Option<PathBuf>) -> Result<Options, Report<OptionsError>> {
-        let path = match config_path {
-            Some(path) => path,
-            None => get_default_config_path()?,
-        };
+    fn from_file(path: &Path) -> Result<Options, Report<OptionsError>> {
         trace!(path = %path.display(), "Reading options from path");
-        let file = File::open(&path)
+        let file = File::open(path)
             .change_context(OptionsError::Read)
-            .attach_path(&path)?;
+            .attach_path(path)?;
         serde_yaml::from_reader(file)
             .change_context(OptionsError::Deserialize)
-            .attach_path(&path)
+            .attach_path(path)
     }
 
     /// Path of the mapper device derived from `mapper_name`.
@@ -58,7 +51,25 @@ impl Options {
     }
 }
 
-fn get_default_config_path() -> Result<PathBuf, Report<OptionsError>> {
+impl FromServices for Options {
+    type Error = OptionsError;
+
+    fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>>
+    where
+        Self: Sized,
+    {
+        let cli = services
+            .get::<CliOptions>()
+            .expect("should be able to resolve CliOptions");
+        let path = match &cli.config {
+            Some(path) => path,
+            None => &get_config_path()?,
+        };
+        Self::from_file(path)
+    }
+}
+
+fn get_config_path() -> Result<PathBuf, Report<OptionsError>> {
     let paths = get_paths()?;
     trace!(
         "Found {} options files:\n{}",
@@ -104,7 +115,7 @@ fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
     Ok(paths)
 }
 
-/// Errors returned by [`Options::read_options`].
+/// Errors returned by [`Options`].
 #[derive(Clone, Copy, Debug, Error, PartialEq)]
 pub enum OptionsError {
     #[error("Unable to read config directory")]
@@ -125,7 +136,7 @@ mod tests {
     use std::fs::write;
 
     #[test]
-    fn read_options_from_specific_config_file() {
+    fn options_from_file() {
         // Arrange
         let dir = TempDirectory::default()
             .create()
@@ -141,7 +152,7 @@ mod tests {
         let target_path = paths.get(1).expect("should have path at index 1").clone();
 
         // Act
-        let options = Options::read_options(Some(target_path)).expect("should read options");
+        let options = Options::from_file(&target_path).expect("should read options");
 
         // Assert
         assert_eq!(options.mapper_name, "test-2");

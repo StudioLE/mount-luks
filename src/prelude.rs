@@ -1,7 +1,8 @@
 //! Common imports used throughout the crate.
 
 pub(crate) use crate::adapters::*;
-pub use crate::cli::*;
+pub use crate::cli::Cli;
+pub(crate) use crate::cli::*;
 pub(crate) use crate::extensions::*;
 pub(crate) use crate::handlers::*;
 pub(crate) use crate::ui::*;
