@@ -5,4 +5,5 @@ mod cli;
 mod extensions;
 mod handlers;
 pub mod prelude;
+mod ui;
 mod utils;

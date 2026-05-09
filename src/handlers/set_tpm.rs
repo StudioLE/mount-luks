@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+const TOTAL_STEPS: usize = 8;
+
 /// Handler for sealing a key into the TPM.
 pub struct SetTpmHandler {
     /// Configuration options for the set-tpm operation.
@@ -44,19 +46,18 @@ impl FromServices for SetTpmHandler {
 impl SetTpmHandler {
     /// Execute the set-tpm workflow.
     pub fn execute(&self) -> Result<(), StructuredError> {
-        let counter = Mutex::new(0);
-        let total_steps = 8;
+        let mut progress = Progress::new(TOTAL_STEPS);
 
-        print_step_start(&counter, total_steps, "Checking if root");
+        progress.step("Checking if root");
         self.is_root.is_root().map_err(StructuredError::from)?;
-        print_step_completed("Access granted");
+        progress.ok("Access granted");
 
         let handle = self
             .options
             .tpm_handle
             .ok_or_else(|| StructuredError::new(HandleRequired))?;
 
-        print_step_start(&counter, total_steps, "Checking TPM handle availability");
+        progress.step("Checking TPM handle availability");
         let handles = self
             .get_handles
             .get_handles()
@@ -64,44 +65,44 @@ impl SetTpmHandler {
         if handles.contains(&handle) {
             return Err(Report::new(HandleInUse).attach("Handle", handle).into());
         }
-        print_step_completed("TPM handle is available");
+        progress.ok("TPM handle is available");
 
-        print_step_start(&counter, total_steps, "Creating TPM policy");
+        progress.step("Creating TPM policy");
         self.create_policy
             .create_policy()
             .map_err(StructuredError::from)?;
-        print_step_completed("TPM policy created");
+        progress.ok("TPM policy created");
 
-        print_step_start(&counter, total_steps, "Creating TPM primary key");
+        progress.step("Creating TPM primary key");
         self.create_primary
             .create_primary()
             .map_err(StructuredError::from)?;
-        print_step_completed("TPM primary key created");
+        progress.ok("TPM primary key created");
 
-        print_step_start(&counter, total_steps, "Getting key to seal");
+        progress.step("Getting key to seal");
         let key = self
             .prompt
             .prompt("Enter key to seal into TPM: ")
             .map_err(StructuredError::from)?;
-        print_step_completed("Key retrieved");
+        progress.ok("Key retrieved");
 
-        print_step_start(&counter, total_steps, "Creating TPM object");
+        progress.step("Creating TPM object");
         self.create_object
             .create_object(key.trim())
             .map_err(StructuredError::from)?;
-        print_step_completed("TPM object created");
+        progress.ok("TPM object created");
 
-        print_step_start(&counter, total_steps, "Loading TPM object");
+        progress.step("Loading TPM object");
         self.load_object
             .load_object()
             .map_err(StructuredError::from)?;
-        print_step_completed("TPM object loaded");
+        progress.ok("TPM object loaded");
 
-        print_step_start(&counter, total_steps, "Persisting TPM object");
+        progress.step("Persisting TPM object");
         self.persist
             .persist(handle)
             .map_err(StructuredError::from)?;
-        print_step_completed("TPM object persisted");
+        progress.ok("TPM object persisted");
 
         Ok(())
     }

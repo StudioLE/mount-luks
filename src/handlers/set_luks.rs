@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+const TOTAL_STEPS: usize = 6;
+
 /// Handler for adding a new key to a LUKS partition.
 pub struct SetLuksHandler {
     /// Adapter for checking root privileges.
@@ -38,41 +40,36 @@ impl FromServices for SetLuksHandler {
 impl SetLuksHandler {
     /// Execute the set-luks workflow.
     pub fn execute(&self) -> Result<(), StructuredError> {
-        let counter = Mutex::new(0);
-        let total_steps = 6;
+        let mut progress = Progress::new(TOTAL_STEPS);
 
-        print_step_start(&counter, total_steps, "Checking if root");
+        progress.step("Checking if root");
         self.is_root.is_root().map_err(StructuredError::from)?;
-        print_step_completed("Access granted");
+        progress.ok("Access granted");
 
-        print_step_start(&counter, total_steps, "Resolving partition");
+        progress.step("Resolving partition");
         let partition = self
             .resolve_partition
             .resolve_partition()
             .map_err(StructuredError::from)?;
-        print_step_completed(&format!("Resolved to {}", partition.display()));
+        progress.ok(&format!("Resolved to {}", partition.display()));
 
-        print_step_start(
-            &counter,
-            total_steps,
-            "Checking if partition is encrypted with LUKS",
-        );
+        progress.step("Checking if partition is encrypted with LUKS");
         self.is_luks
             .is_luks(&partition)
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition is encrypted with LUKS");
+        progress.ok("Partition is encrypted with LUKS");
 
-        print_step_start(&counter, total_steps, "Getting new key");
+        progress.step("Getting new key");
         let new_key = self.get_key.get().map_err(StructuredError::from)?;
-        print_step_completed("New key retrieved");
+        progress.ok("New key retrieved");
 
-        print_step_start(&counter, total_steps, "Checking if key already exists");
+        progress.step("Checking if key already exists");
         if self.check_key.check_key(&partition, &new_key).is_ok() {
             return Err(Report::new(KeyAlreadyExists).attach_path(&partition).into());
         }
-        print_step_completed("Key does not already exist");
+        progress.ok("Key does not already exist");
 
-        print_step_start(&counter, total_steps, "Adding new key to partition");
+        progress.step("Adding new key to partition");
         let existing_passphrase = self
             .prompt
             .prompt("Enter existing passphrase: ")
@@ -80,7 +77,7 @@ impl SetLuksHandler {
         self.add_key
             .add_key(&partition, existing_passphrase.trim(), &new_key)
             .map_err(StructuredError::from)?;
-        print_step_completed("New key added to partition");
+        progress.ok("New key added to partition");
 
         Ok(())
     }

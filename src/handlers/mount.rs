@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+const TOTAL_STEPS: usize = 8;
+
 /// Handler for unlocking and mounting a LUKS partition.
 pub struct MountHandler {
     /// Configuration options for the mount operation.
@@ -47,65 +49,56 @@ impl FromServices for MountHandler {
 impl MountHandler {
     /// Execute the mount workflow.
     pub fn execute(&self) -> Result<(), StructuredError> {
-        let counter = Mutex::new(0);
-        let total_steps = 8;
+        let mut progress = Progress::new(TOTAL_STEPS);
 
-        print_step_start(&counter, total_steps, "Checking if root");
+        progress.step("Checking if root");
         self.is_root.is_root().map_err(StructuredError::from)?;
-        print_step_completed("Access granted");
+        progress.ok("Access granted");
 
-        print_step_start(&counter, total_steps, "Resolving partition");
+        progress.step("Resolving partition");
         let partition = self
             .resolve_partition
             .resolve_partition()
             .map_err(StructuredError::from)?;
-        print_step_completed(&format!("Resolved to {}", partition.display()));
+        progress.ok(&format!("Resolved to {}", partition.display()));
 
-        print_step_start(
-            &counter,
-            total_steps,
-            "Checking if partition is encrypted with LUKS",
-        );
+        progress.step("Checking if partition is encrypted with LUKS");
         self.is_luks
             .is_luks(&partition)
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition is encrypted with LUKS");
+        progress.ok("Partition is encrypted with LUKS");
 
-        print_step_start(
-            &counter,
-            total_steps,
-            "Checking if partition is already unlocked",
-        );
+        progress.step("Checking if partition is already unlocked");
         self.is_locked
             .is_partition_locked()
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition is locked");
+        progress.ok("Partition is locked");
 
-        print_step_start(&counter, total_steps, "Unlocking LUKS partition");
+        progress.step("Unlocking LUKS partition");
         let key = self.get_key.get().map_err(StructuredError::from)?;
         self.unlock
             .unlock(&partition, &self.options.mapper_name, &key)
             .map_err(StructuredError::from)?;
-        print_step_completed("Unlocked LUKS partition");
+        progress.ok("Unlocked LUKS partition");
 
-        print_step_start(&counter, total_steps, "Checking mount point exists");
+        progress.step("Checking mount point exists");
         self.check_mount
             .check_mount_exists()
             .map_err(StructuredError::from)?;
-        print_step_completed("Mount point exists");
+        progress.ok("Mount point exists");
 
-        print_step_start(&counter, total_steps, "Checking if already mounted");
+        progress.step("Checking if already mounted");
         self.find_mount
             .check_not_mounted(&self.options.mount_path)
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition is not mounted");
+        progress.ok("Partition is not mounted");
 
-        print_step_start(&counter, total_steps, "Mounting partition");
+        progress.step("Mounting partition");
         let mapper_path = self.options.get_mapper_path();
         self.mount
             .mount(&mapper_path, &self.options.mount_path)
             .map_err(StructuredError::from)?;
-        print_step_completed("Partition mounted successfully");
+        progress.ok("Partition mounted successfully");
 
         Ok(())
     }

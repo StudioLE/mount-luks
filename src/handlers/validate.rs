@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+const TOTAL_STEPS: usize = 4;
+
 /// Handler for validating a LUKS key against a partition.
 pub struct ValidateHandler {
     /// Adapter for checking root privileges.
@@ -29,29 +31,28 @@ impl FromServices for ValidateHandler {
 impl ValidateHandler {
     /// Execute the validate workflow.
     pub fn execute(&self) -> Result<(), StructuredError> {
-        let counter = Mutex::new(0);
-        let total_steps = 4;
+        let mut progress = Progress::new(TOTAL_STEPS);
 
-        print_step_start(&counter, total_steps, "Checking if root");
+        progress.step("Checking if root");
         self.is_root.is_root().map_err(StructuredError::from)?;
-        print_step_completed("Access granted");
+        progress.ok("Access granted");
 
-        print_step_start(&counter, total_steps, "Resolving partition");
+        progress.step("Resolving partition");
         let partition = self
             .resolve_partition
             .resolve_partition()
             .map_err(StructuredError::from)?;
-        print_step_completed(&format!("Resolved to {}", partition.display()));
+        progress.ok(&format!("Resolved to {}", partition.display()));
 
-        print_step_start(&counter, total_steps, "Getting key");
+        progress.step("Getting key");
         let key = self.get_key.get().map_err(StructuredError::from)?;
-        print_step_completed("Key retrieved");
+        progress.ok("Key retrieved");
 
-        print_step_start(&counter, total_steps, "Validating key against partition");
+        progress.step("Validating key against partition");
         self.check_key
             .check_key(&partition, &key)
             .map_err(StructuredError::from)?;
-        print_step_completed("Key is valid");
+        progress.ok("Key is valid");
 
         Ok(())
     }

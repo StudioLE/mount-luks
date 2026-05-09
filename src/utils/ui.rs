@@ -1,9 +1,6 @@
 use crate::prelude::*;
 use owo_colors::OwoColorize;
 
-const CHECK: &str = " ✓ ";
-const CROSS: &str = " ⨯ ";
-
 /// Print the application header with the current options and command.
 pub fn print_header(options: &Options, command: SubCommand) {
     let title = [
@@ -25,18 +22,6 @@ pub fn print_header(options: &Options, command: SubCommand) {
         title.join("\n").bold(),
         body.join("\n").dimmed()
     );
-}
-
-/// Print the start of a step, incrementing the shared counter.
-pub fn print_step_start(mut_counter: &Mutex<usize>, total_steps: usize, message: &str) {
-    let mut i = mut_counter.lock().expect("Should be able to lock mutex");
-    *i += 1;
-    info!("{}", format!("{i}/{total_steps} {message}").dimmed());
-}
-
-/// Print a success indicator for a completed step.
-pub fn print_step_completed(message: &str) {
-    info!("{} {message}", CHECK.dimmed());
 }
 
 /// Print an error indicator with the given message.
