@@ -46,7 +46,7 @@ impl Logger {
         eprintln!(
             "{}\n{}\n",
             title.join("\n").bold(),
-            body.join("\n").dimmed()
+            body.map(|line| line.dimmed().to_string()).join("\n")
         );
     }
 }
