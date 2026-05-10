@@ -5,6 +5,7 @@ use crate::prelude::*;
 const TOTAL_STEPS: usize = 8;
 
 /// Handler for unlocking and mounting a LUKS partition.
+#[derive(FromServices)]
 pub struct MountHandler {
     /// Configuration options for the mount operation.
     options: Arc<Options>,
@@ -26,24 +27,6 @@ pub struct MountHandler {
     check_mount: Arc<dyn CheckMountExists>,
     /// Adapter for checking if the partition is locked.
     is_locked: Arc<dyn IsPartitionLocked>,
-}
-
-impl FromServices for MountHandler {
-    type Error = ResolveError;
-    fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
-        Ok(Self {
-            options: services.get::<Options>()?,
-            is_root: services.get_trait::<dyn IsRoot>()?,
-            is_luks: services.get_trait::<dyn IsLuks>()?,
-            unlock: services.get_trait::<dyn Unlock>()?,
-            find_mount: services.get_trait::<dyn FindMount>()?,
-            mount: services.get_trait::<dyn MountPartition>()?,
-            get_key: services.get_trait::<dyn GetKey>()?,
-            resolve_partition: services.get_trait::<dyn ResolvePartition>()?,
-            check_mount: services.get_trait::<dyn CheckMountExists>()?,
-            is_locked: services.get_trait::<dyn IsPartitionLocked>()?,
-        })
-    }
 }
 
 impl MountHandler {

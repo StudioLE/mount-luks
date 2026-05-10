@@ -11,6 +11,7 @@ pub trait GetKey: Send + Sync {
 }
 
 /// [`GetKey`] adapter that reads from file, TPM, and interactive prompt.
+#[derive(FromServices)]
 pub struct GetKeyAdapter {
     /// Configuration options.
     options: Arc<Options>,
@@ -18,17 +19,6 @@ pub struct GetKeyAdapter {
     unseal: Arc<dyn Unseal>,
     /// Adapter for prompting for a password.
     prompt: Arc<dyn PromptPassword>,
-}
-
-impl FromServices for GetKeyAdapter {
-    type Error = ResolveError;
-    fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
-        Ok(Self {
-            options: services.get::<Options>()?,
-            unseal: services.get_trait::<dyn Unseal>()?,
-            prompt: services.get_trait::<dyn PromptPassword>()?,
-        })
-    }
 }
 
 impl GetKey for GetKeyAdapter {

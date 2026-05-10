@@ -5,6 +5,7 @@ use crate::prelude::*;
 const TOTAL_STEPS: usize = 4;
 
 /// Handler for validating a LUKS key against a partition.
+#[derive(FromServices)]
 pub struct ValidateHandler {
     /// Adapter for checking root privileges.
     is_root: Arc<dyn IsRoot>,
@@ -14,18 +15,6 @@ pub struct ValidateHandler {
     check_key: Arc<dyn CheckKey>,
     /// Adapter for retrieving the composite key.
     get_key: Arc<dyn GetKey>,
-}
-
-impl FromServices for ValidateHandler {
-    type Error = ResolveError;
-    fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
-        Ok(Self {
-            is_root: services.get_trait::<dyn IsRoot>()?,
-            resolve_partition: services.get_trait::<dyn ResolvePartition>()?,
-            check_key: services.get_trait::<dyn CheckKey>()?,
-            get_key: services.get_trait::<dyn GetKey>()?,
-        })
-    }
 }
 
 impl ValidateHandler {

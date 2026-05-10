@@ -5,6 +5,7 @@ use crate::prelude::*;
 const TOTAL_STEPS: usize = 6;
 
 /// Handler for adding a new key to a LUKS partition.
+#[derive(FromServices)]
 pub struct SetLuksHandler {
     /// Adapter for checking root privileges.
     is_root: Arc<dyn IsRoot>,
@@ -20,21 +21,6 @@ pub struct SetLuksHandler {
     prompt: Arc<dyn PromptPassword>,
     /// Adapter for resolving PARTUUID to a device path.
     resolve_partition: Arc<dyn ResolvePartition>,
-}
-
-impl FromServices for SetLuksHandler {
-    type Error = ResolveError;
-    fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
-        Ok(Self {
-            is_root: services.get_trait::<dyn IsRoot>()?,
-            is_luks: services.get_trait::<dyn IsLuks>()?,
-            check_key: services.get_trait::<dyn CheckKey>()?,
-            add_key: services.get_trait::<dyn AddKey>()?,
-            get_key: services.get_trait::<dyn GetKey>()?,
-            prompt: services.get_trait::<dyn PromptPassword>()?,
-            resolve_partition: services.get_trait::<dyn ResolvePartition>()?,
-        })
-    }
 }
 
 impl SetLuksHandler {

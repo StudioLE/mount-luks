@@ -5,6 +5,7 @@ use crate::prelude::*;
 const TOTAL_STEPS: usize = 8;
 
 /// Handler for sealing a key into the TPM.
+#[derive(FromServices)]
 pub struct SetTpmHandler {
     /// Configuration options for the set-tpm operation.
     options: Arc<Options>,
@@ -24,23 +25,6 @@ pub struct SetTpmHandler {
     persist: Arc<dyn Persist>,
     /// Adapter for prompting for a password.
     prompt: Arc<dyn PromptPassword>,
-}
-
-impl FromServices for SetTpmHandler {
-    type Error = ResolveError;
-    fn from_services(services: &ServiceProvider) -> Result<Self, Report<ResolveError>> {
-        Ok(Self {
-            options: services.get::<Options>()?,
-            is_root: services.get_trait::<dyn IsRoot>()?,
-            get_handles: services.get_trait::<dyn GetHandles>()?,
-            create_policy: services.get_trait::<dyn CreatePolicy>()?,
-            create_primary: services.get_trait::<dyn CreatePrimary>()?,
-            create_object: services.get_trait::<dyn CreateObject>()?,
-            load_object: services.get_trait::<dyn LoadObject>()?,
-            persist: services.get_trait::<dyn Persist>()?,
-            prompt: services.get_trait::<dyn PromptPassword>()?,
-        })
-    }
 }
 
 impl SetTpmHandler {
