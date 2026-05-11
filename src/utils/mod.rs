@@ -2,7 +2,6 @@
 
 mod constants;
 mod is_root;
-mod logging;
 mod options;
 mod persistent_handle;
 mod response;
@@ -12,7 +11,6 @@ mod tpm_constants;
 
 pub use constants::*;
 pub use is_root::*;
-pub use logging::*;
 pub use options::*;
 pub use persistent_handle::*;
 pub use response::*;

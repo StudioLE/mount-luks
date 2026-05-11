@@ -18,21 +18,15 @@ impl Cli {
     /// Run the CLI to completion, returning the appropriate exit code.
     #[must_use]
     pub fn run(&self) -> ExitCode {
-        self.init_logger();
+        self.services
+            .init()
+            .expect("should be able to init services");
         if let Err(e) = self.run_subcommand() {
-            Logger::error("Unable to continue", &e);
+            Ui::error("Unable to continue", &e);
             ExitCode::FAILURE
         } else {
             ExitCode::SUCCESS
         }
-    }
-
-    fn init_logger(&self) {
-        let logger = self
-            .services
-            .get::<Logger>()
-            .expect("should be able to resolve Logger");
-        logger.init();
     }
 
     fn run_subcommand(&self) -> Result<(), StructuredError> {

@@ -13,6 +13,7 @@ pub(crate) use std::process::Command;
 pub(crate) use std::str::FromStr;
 pub(crate) use std::sync::Arc;
 pub(crate) use studiole_di::prelude::*;
+pub(crate) use studiole_logging::prelude::*;
 pub(crate) use studiole_report::prelude::{Attach, Report, ResultExt, StructuredError};
 pub(crate) use thiserror::Error;
 #[expect(

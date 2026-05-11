@@ -8,7 +8,8 @@ pub trait ServiceBuilderExt {
 
 impl ServiceBuilderExt for ServiceBuilder {
     fn with_app_services(self) -> Self {
-        self.with_trait::<dyn IsRoot, IsRootAdapter>()
+        self.with_logging(create_logger)
+            .with_trait::<dyn IsRoot, IsRootAdapter>()
             .with_trait::<dyn IsLuks, CryptsetupAdapter>()
             .with_trait::<dyn Unlock, CryptsetupAdapter>()
             .with_trait::<dyn CheckKey, CryptsetupAdapter>()
@@ -33,7 +34,16 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_type::<SetLuksHandler>()
             .with_type::<Options>()
             .with_type::<CliOptions>()
-            .with_type::<Logger>()
+            .with_type::<Ui>()
             .with_type::<SubCommandHandler>()
+            .with_init::<Ui>()
     }
+}
+
+fn create_logger(services: &ServiceProvider) -> Result<Logger, Report<ResolveError>> {
+    let cli = services.get::<CliOptions>()?;
+    let logger = LoggerBuilder::new()
+        .with_level(cli.log_level.unwrap_or_default())
+        .build();
+    Ok(logger)
 }

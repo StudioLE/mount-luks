@@ -1,22 +1,16 @@
 use crate::prelude::*;
 use owo_colors::OwoColorize;
 
-/// Application logger and header display.
+/// Application banner and error display.
 #[derive(FromServices)]
-pub struct Logger {
+pub struct Ui {
     /// Parsed CLI arguments
     pub(crate) cli: Arc<CliOptions>,
     /// Application configuration options
     pub(crate) options: Arc<Options>,
 }
 
-impl Logger {
-    /// Initialize the elapsed logger and print the application header.
-    pub fn init(&self) {
-        init_elapsed_logger(self.cli.log_level);
-        self.header();
-    }
-
+impl Ui {
     /// Print an error indicator with the given message.
     pub fn error(message: &str, e: &StructuredError) {
         error!("{} {message}\n{}", CROSS.dimmed(), e.render());
@@ -48,6 +42,13 @@ impl Logger {
             title.join("\n").bold(),
             body.map(|line| line.dimmed().to_string()).join("\n")
         );
+    }
+}
+
+impl Init for Ui {
+    fn init(&self, _services: &ServiceProvider) -> Result<(), Report<InitError>> {
+        self.header();
+        Ok(())
     }
 }
 
