@@ -11,16 +11,16 @@ impl Cli {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            services: ServiceBuilder::new().with_app_services().build(),
+            services: ServiceBuilder::new()
+                .with_app_services()
+                .build()
+                .expect_init(),
         }
     }
 
     /// Run the CLI to completion, returning the appropriate exit code.
     #[must_use]
     pub fn run(&self) -> ExitCode {
-        self.services
-            .init()
-            .expect("should be able to init services");
         if let Err(e) = self.run_subcommand() {
             Ui::error("Unable to continue", &e);
             ExitCode::FAILURE
@@ -30,10 +30,7 @@ impl Cli {
     }
 
     fn run_subcommand(&self) -> Result<(), StructuredError> {
-        let handler = self
-            .services
-            .get::<SubCommandHandler>()
-            .expect("should be able to resolve SubCommandHandler");
+        let handler = self.services.expect::<SubCommandHandler>();
         handler.run()
     }
 }
