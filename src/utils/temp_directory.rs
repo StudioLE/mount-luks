@@ -2,12 +2,10 @@
     dead_code,
     reason = "test-only module, not all helpers used in every test"
 )]
-use crate::prelude::APP_NAME;
+use crate::prelude::*;
 use chrono::Local;
 use std::env::temp_dir;
 use std::fs::create_dir_all;
-use std::io::Error as IoError;
-use std::path::PathBuf;
 use std::thread::current as current_thread;
 
 /// Builder for a temporary directory path used in tests.
@@ -50,8 +48,13 @@ impl TempDirectory {
     }
 
     /// Create the directory and return its path.
-    pub fn create(self) -> Result<PathBuf, IoError> {
-        create_dir_all(&self.path)?;
+    ///
+    /// # Errors
+    /// - If the directory or any of its parents cannot be created
+    pub fn create(self) -> Result<PathBuf, Report<TempDirectoryError>> {
+        create_dir_all(&self.path)
+            .change_context(TempDirectoryError::Create)
+            .attach_path(&self.path)?;
         Ok(self.path)
     }
 }
@@ -71,4 +74,12 @@ fn get_test_name_underscored() -> String {
         .name()
         .expect("should be able to get test name")
         .replace(':', "_")
+}
+
+/// Errors returned by [`TempDirectory`].
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+pub enum TempDirectoryError {
+    /// Unable to create the temp directory.
+    #[error("Unable to create temp directory")]
+    Create,
 }
