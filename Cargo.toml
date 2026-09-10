@@ -1,27 +1,26 @@
 [package]
 name = "mount-luks"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.6.1", features = ["derive"] }
-dirs = "6.0.0"
+clap = { version = "4.6.6", features = ["derive"] }
+dirs = "7.0.0"
 nix = { version = "0.31.3", features = ["user"] }
-owo-colors = "4.3.0"
-rpassword = "7.5.2"
-serde = { version = "1.0.228", features = ["derive"] }
+owo-colors = "4.4.0"
+rpassword = "7.5.4"
+serde = { version = "1.0.229", features = ["derive"] }
 serde_yaml = "0.9.34"
 strum = { version = "0.28.0", features = ["derive"] }
 studiole-di = { version = "0.6.0", features = ["traits"] }
-studiole-logging = { version = "0.4.0" }
-studiole-report = { version = "0.4.0", features = ["render"] }
-thiserror = "2.0.18"
+studiole-logging = { version = "0.4.1" }
+studiole-report = { version = "0.4.1", features = ["render"] }
+thiserror = "2.0.20"
 tracing = "0.1.44"
 
 [dev-dependencies]
-chrono = { version = "0.4.44" }
-mockall = { version = "0.14.0" }
-serial_test = { version = "3.4.0" }
+chrono = { version = "0.4.45" }
+mockall = { version = "0.15.0" }
 
 [lints.rust]
 missing_docs = "warn"
