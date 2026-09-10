@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Install mount-luks as a systemd system service on SELinux systems (e.g., Bluefin/Fedora Atomic)
 #
-# Homebrew installs binaries under /home which SELinux labels as user_home_t.
-# System services (init_t) cannot execute user_home_t files.
+# Homebrew installs binaries under /home, which SELinux leaves labelled default_t.
+# System services (init_t) cannot execute default_t files.
 # This script relabels the mount-luks binary as bin_t and creates a systemd service.
 #
 # Usage: sudo ./install-service.sh
@@ -10,7 +10,6 @@ set -euo pipefail
 
 BREW_PREFIX_DEFAULT="/home/linuxbrew/.linuxbrew"
 BREW_PREFIX="${HOMEBREW_PREFIX:-$BREW_PREFIX_DEFAULT}"
-BREW_PREFIX_REAL="$(readlink -f "$BREW_PREFIX")"
 SERVICE_FILE="/etc/systemd/system/mount-luks.service"
 
 main() {
@@ -35,21 +34,34 @@ validate() {
 }
 
 # Add persistent SELinux file context rules for the brew binary paths.
-# Uses the real path (e.g., /var/home) because semanage rejects /home on Fedora Atomic
-# where /home is a symlink to /var/home.
 add_selinux_rules() {
+  local prefix
+  prefix="$(fcontext_prefix)"
   echo "Adding SELinux file context rules…"
-  add_fcontext "${BREW_PREFIX_REAL}/bin/mount-luks"
-  add_fcontext "${BREW_PREFIX_REAL}/opt/mount-luks(/.*)?"
-  add_fcontext "${BREW_PREFIX_REAL}/Cellar/mount-luks/.*/bin/mount-luks"
+  add_fcontext "${prefix}/bin/mount-luks"
+  add_fcontext "${prefix}/opt/mount-luks(/.*)?"
+  add_fcontext "${prefix}/Cellar/mount-luks/.*/bin/mount-luks"
 }
 
-# Add a single fcontext rule, updating if it already exists.
+# Build the file spec prefix as a regex matching both /home and /var/home.
+# Fedora Atomic ships a /var/home equivalency in file_contexts.subs_dist and has
+# changed its direction between releases. Lookups are rewritten to whichever form
+# is canonical before matching, and semanage rejects a spec starting with the
+# other one, so an optional /var segment stays valid either way.
+# Output: regex prefix, with '.' escaped
+fcontext_prefix() {
+  local escaped="${BREW_PREFIX//./\\.}"
+  case "$escaped" in
+    /var/home/*) printf '/(var/)?%s' "${escaped#/var/}" ;;
+    /home/*) printf '/(var/)?%s' "${escaped#/}" ;;
+    *) printf '%s' "$escaped" ;;
+  esac
+}
+
+# Add a single fcontext rule. semanage falls back to modify if it already exists.
 add_fcontext() {
   local pattern="$1"
-  if ! semanage fcontext -a -t bin_t "$pattern" 2>/dev/null; then
-    semanage fcontext -m -t bin_t "$pattern"
-  fi
+  semanage fcontext -a -t bin_t "$pattern"
 }
 
 apply_selinux_labels() {

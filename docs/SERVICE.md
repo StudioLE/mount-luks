@@ -24,13 +24,19 @@ journalctl -u mount-luks.service
 
 ## Why SELinux rules are needed
 
-Homebrew installs binaries under `/home` which SELinux labels as `user_home_t`. System services run in the `init_t` domain which cannot execute `user_home_t` files. The script uses `semanage fcontext` to persistently relabel the binary as `bin_t`.
+Homebrew installs binaries under `/home`, which SELinux leaves labelled `default_t`. System services run in the `init_t` domain, which cannot execute `default_t` files, so the service fails with `203/EXEC` and `Permission denied`. The script uses `semanage fcontext` to persistently relabel the binary as `bin_t`.
 
-On Fedora Atomic (Bluefin, Bazzite, Aurora), `/home` is a symlink to `/var/home`. The script resolves this automatically.
+## Fedora Atomic and `/var/home`
+
+On Fedora Atomic (Bluefin, Bazzite, Aurora), `/home` is a symlink to `/var/home`, and `file_contexts.subs_dist` carries an equivalency between the two. Lookups are rewritten to whichever form is canonical before any matching happens, and `semanage` refuses a spec starting with the other one.
+
+Releases have shipped that equivalency in both directions. A flip silently invalidates rules written for the previous direction: they stay in `file_contexts.local` looking correct, match nothing, and `restorecon` stamps `default_t` back onto the binary at every service start.
+
+The script writes `/(var/)?home/…` so one rule matches either form. The leading `(` also keeps the spec clear of the literal prefix check `semanage` uses to reject the aliased-away form.
 
 ## Brew upgrades
 
-The systemd service includes `ExecStartPre` commands that run `restorecon` before each start. When Homebrew installs a new version, the new binary initially gets `user_home_t`, but the next boot relabels it automatically using the persistent `semanage` rules.
+The systemd service includes `ExecStartPre` commands that run `restorecon` before each start. When Homebrew installs a new version, the new binary initially gets `default_t`, but the next boot relabels it automatically using the persistent `semanage` rules.
 
 ## Manual removal
 
@@ -43,8 +49,7 @@ sudo systemctl daemon-reload
 To also remove the SELinux rules:
 
 ```shell
-BREW_PREFIX_REAL="$(readlink -f /home/linuxbrew/.linuxbrew)"
-sudo semanage fcontext -d "${BREW_PREFIX_REAL}/bin/mount-luks"
-sudo semanage fcontext -d "${BREW_PREFIX_REAL}/opt/mount-luks(/.*)?"
-sudo semanage fcontext -d "${BREW_PREFIX_REAL}/Cellar/mount-luks/.*/bin/mount-luks"
+sudo semanage fcontext -d '/(var/)?home/linuxbrew/\.linuxbrew/bin/mount-luks'
+sudo semanage fcontext -d '/(var/)?home/linuxbrew/\.linuxbrew/opt/mount-luks(/.*)?'
+sudo semanage fcontext -d '/(var/)?home/linuxbrew/\.linuxbrew/Cellar/mount-luks/.*/bin/mount-luks'
 ```
