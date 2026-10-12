@@ -15,6 +15,7 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_trait::<dyn CheckKey, CryptsetupAdapter>()
             .with_trait::<dyn AddKey, CryptsetupAdapter>()
             .with_trait::<dyn Unseal, Tpm2Adapter>()
+            .with_type::<Retry<dyn Unseal>>()
             .with_trait::<dyn GetHandles, Tpm2Adapter>()
             .with_trait::<dyn CreatePolicy, Tpm2Adapter>()
             .with_trait::<dyn CreatePrimary, Tpm2Adapter>()

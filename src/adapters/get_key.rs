@@ -15,8 +15,8 @@ pub trait GetKey: Send + Sync {
 pub struct GetKeyAdapter {
     /// Configuration options.
     options: Arc<Options>,
-    /// Adapter for unsealing TPM objects.
-    unseal: Arc<dyn Unseal>,
+    /// Adapter for unsealing TPM objects with retry.
+    unseal: Arc<Retry<dyn Unseal>>,
     /// Adapter for prompting for a password.
     prompt: Arc<dyn PromptPassword>,
 }
@@ -40,7 +40,7 @@ impl GetKey for GetKeyAdapter {
             trace!(%handle, "Reading key from TPM");
             let key = self
                 .unseal
-                .unseal(*handle)
+                .execute(*handle)
                 .change_context(GetKeyError::Tpm)
                 .attach("Handle", handle)?;
             if key.is_empty() {
@@ -95,7 +95,7 @@ mod tests {
         let prompt = MockPromptPassword::new();
         GetKeyAdapter {
             options: Arc::new(options),
-            unseal: Arc::new(unseal),
+            unseal: Arc::new(Retry::<dyn Unseal>::new(Arc::new(unseal))),
             prompt: Arc::new(prompt),
         }
     }
@@ -107,7 +107,7 @@ mod tests {
     ) -> GetKeyAdapter {
         GetKeyAdapter {
             options: Arc::new(options),
-            unseal: Arc::new(unseal),
+            unseal: Arc::new(Retry::<dyn Unseal>::new(Arc::new(unseal))),
             prompt: Arc::new(prompt),
         }
     }
@@ -322,7 +322,7 @@ mod tests {
         let mut unseal = MockUnseal::new();
         unseal
             .expect_unseal()
-            .returning(|_| Err(Report::new(UnsealError)));
+            .returning(|_| Err(Report::new(UnsealError::Failed)));
         let adapter = make_adapter_with(
             Options {
                 tpm_handle: Some(handle),
