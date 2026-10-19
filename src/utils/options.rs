@@ -58,7 +58,7 @@ impl FromServices for Options {
     where
         Self: Sized,
     {
-        let cli = services.expect::<CliOptions>();
+        let cli = services.expect::<CliArgs>();
         let path = match &cli.config {
             Some(path) => path,
             None => &get_config_path()?,

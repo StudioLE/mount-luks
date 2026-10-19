@@ -21,3 +21,6 @@ pub(crate) use thiserror::Error;
     reason = "prelude exports all log macros for convenience"
 )]
 pub(crate) use tracing::{debug, error, info, trace, warn};
+
+#[cfg(test)]
+pub(crate) use insta::assert_snapshot;

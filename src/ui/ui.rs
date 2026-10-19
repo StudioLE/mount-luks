@@ -5,7 +5,7 @@ use owo_colors::OwoColorize;
 #[derive(FromServices)]
 pub struct Ui {
     /// Parsed CLI arguments
-    pub(crate) cli: Arc<CliOptions>,
+    pub(crate) cli: Arc<CliArgs>,
     /// Application configuration options
     pub(crate) options: Arc<Options>,
 }

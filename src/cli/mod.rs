@@ -1,11 +1,11 @@
 //! CLI argument parsing and application bootstrapping.
 
 mod cli;
-mod cli_options;
+mod cli_args;
 mod service_builder_ext;
-mod sub_command;
+mod subcommand;
 
 pub use cli::*;
-pub use cli_options::*;
+pub use cli_args::*;
 pub use service_builder_ext::*;
-pub use sub_command::*;
+pub use subcommand::*;

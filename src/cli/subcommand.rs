@@ -1,10 +1,10 @@
 use crate::prelude::*;
-use clap::Subcommand;
 use strum::Display;
+use usage_rs::Subcommands as UsageSubcommands;
 
 /// Available CLI subcommands.
-#[derive(Copy, Clone, Default, Display, Subcommand)]
-pub enum SubCommand {
+#[derive(Copy, Clone, Debug, Default, Display, Eq, PartialEq, UsageSubcommands)]
+pub enum Subcommand {
     /// Unlock and mount a LUKS encrypted partition
     #[default]
     Mount,
@@ -16,25 +16,25 @@ pub enum SubCommand {
     SetLuks,
 }
 
-/// Dispatch the selected [`SubCommand`] to its handler.
+/// Dispatch the selected [`Subcommand`] to its handler.
 #[derive(FromServices)]
-pub struct SubCommandHandler {
-    cli: Arc<CliOptions>,
+pub struct SubcommandHandler {
+    cli: Arc<CliArgs>,
     mount: Arc<MountHandler>,
     validate: Arc<ValidateHandler>,
     set_tpm: Arc<SetTpmHandler>,
     set_luks: Arc<SetLuksHandler>,
 }
 
-impl SubCommandHandler {
+impl SubcommandHandler {
     /// Execute the selected subcommand.
     pub fn run(&self) -> Result<(), StructuredError> {
         let command = self.cli.command.unwrap_or_default();
         match command {
-            SubCommand::Mount => self.mount.execute(),
-            SubCommand::Validate => self.validate.execute(),
-            SubCommand::SetTpm => self.set_tpm.execute(),
-            SubCommand::SetLuks => self.set_luks.execute(),
+            Subcommand::Mount => self.mount.execute(),
+            Subcommand::Validate => self.validate.execute(),
+            Subcommand::SetTpm => self.set_tpm.execute(),
+            Subcommand::SetLuks => self.set_luks.execute(),
         }
     }
 }

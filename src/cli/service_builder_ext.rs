@@ -34,15 +34,15 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_type::<SetTpmHandler>()
             .with_type::<SetLuksHandler>()
             .with_type::<Options>()
-            .with_type::<CliOptions>()
+            .with_type::<CliArgs>()
             .with_type::<Ui>()
-            .with_type::<SubCommandHandler>()
+            .with_type::<SubcommandHandler>()
             .with_init::<Ui>()
     }
 }
 
 fn create_logger(services: &ServiceProvider) -> Result<Logger, Report<ResolveError>> {
-    let cli = services.get::<CliOptions>()?;
+    let cli = services.get::<CliArgs>()?;
     let logger = LoggerBuilder::new()
         .with_level(cli.log_level.unwrap_or_default())
         .build();

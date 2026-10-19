@@ -2,7 +2,7 @@
 
 ## Overview
 
-A simple CLI tool to unlock and mount a LUKS encrypted disk.
+CLI tool to unlock and mount LUKS encrypted disks.
 
 The passphrase is concatenated from multiple optional sources ensuring the highest level of security:
 

@@ -29,7 +29,7 @@ impl Cli {
     }
 
     fn run_subcommand(&self) -> Result<(), StructuredError> {
-        let handler = self.services.expect::<SubCommandHandler>();
+        let handler = self.services.expect::<SubcommandHandler>();
         handler.run()
     }
 }

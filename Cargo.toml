@@ -2,9 +2,9 @@
 name = "mount-luks"
 version = "0.0.0"
 edition = "2024"
+description = "Unlock and mount LUKS encrypted disks"
 
 [dependencies]
-clap = { version = "4.6.6", features = ["derive"] }
 dirs = "7.0.0"
 nix = { version = "0.31.3", features = ["user"] }
 owo-colors = "4.4.0"
@@ -13,14 +13,17 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_yaml = "0.9.34"
 strum = { version = "0.28.0", features = ["derive"] }
 studiole-di = { version = "0.6.0", features = ["traits"] }
-studiole-logging = { version = "0.4.1" }
+studiole-logging = { version = "0.5.0", features = ["usage"] }
 studiole-report = { version = "0.4.1", features = ["render"] }
 thiserror = "2.0.20"
 tracing = "0.1.44"
+usage-rs = { version = "7.0.2" }
 
 [dev-dependencies]
 chrono = { version = "0.4.45" }
+insta = { version = "1.48.0" }
 mockall = { version = "0.15.0" }
+usage-rs = { version = "7.0.2", features = ["test"] }
 
 [lints.rust]
 missing_docs = "warn"
