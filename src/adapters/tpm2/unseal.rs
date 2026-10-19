@@ -16,7 +16,7 @@ impl Unseal for Tpm2Adapter {
             .arg("--object-context")
             .arg(&context)
             .arg("--auth")
-            .arg(format!("pcr:{}", &*POLICY))
+            .arg(format!("pcr:{}", *POLICY))
             .output()
             .expect("should be able to execute `tpm2_unseal`")
             .to_response();
