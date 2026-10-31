@@ -1,3 +1,5 @@
+//! Extension traits for [`Output`].
+
 use crate::prelude::*;
 use std::error::Error as StdError;
 use std::process::Output;
@@ -18,5 +20,17 @@ impl OkOrReport for Output {
             let report = Report::new(context).attach_response(response);
             Err(report)
         }
+    }
+}
+
+/// Convert a value into a [`Response`].
+pub trait ToResponse {
+    /// Convert `self` into a [`Response`].
+    fn to_response(self) -> Response;
+}
+
+impl ToResponse for Output {
+    fn to_response(self) -> Response {
+        Response::from(self)
     }
 }

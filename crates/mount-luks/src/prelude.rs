@@ -1,12 +1,12 @@
 //! Common imports used throughout the crate.
 
-pub(crate) use crate::adapters::*;
-pub use crate::cli::Cli;
-pub(crate) use crate::cli::*;
+pub use crate::app::Cli;
+pub(crate) use crate::app::*;
+pub(crate) use crate::commands::*;
 pub(crate) use crate::extensions::*;
-pub(crate) use crate::handlers::*;
-pub(crate) use crate::ui::*;
-pub(crate) use crate::utils::*;
+pub(crate) use crate::services::*;
+#[cfg(test)]
+pub(crate) use crate::testing::*;
 pub(crate) use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use std::process::Command;

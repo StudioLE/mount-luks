@@ -1,4 +1,4 @@
-//! CLI subcommand handlers.
+//! Subcommand implementations.
 
 mod mount;
 mod set_luks;

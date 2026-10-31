@@ -1,7 +1,9 @@
-//! Extension traits for standard library types.
+//! Extension traits for standard library and dependency types.
 
-mod output_ok_or_report;
-mod write_to_stdin;
+mod child;
+mod output;
+mod report;
 
-pub use output_ok_or_report::*;
-pub use write_to_stdin::*;
+pub use child::*;
+pub use output::*;
+pub use report::*;
