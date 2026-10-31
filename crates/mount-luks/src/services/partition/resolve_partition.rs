@@ -10,7 +10,6 @@ pub struct ResolvePartitionAdapter {
 }
 
 /// Resolve a PARTUUID to a device path.
-#[cfg_attr(test, mockall::automock)]
 pub trait ResolvePartition: Send + Sync {
     /// Resolve the configured PARTUUID to a device path via `blkid`.
     fn resolve_partition(&self) -> Result<PathBuf, Report<ResolvePartitionError>>;

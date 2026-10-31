@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 /// Check that the partition is not already unlocked.
-#[cfg_attr(test, mockall::automock)]
 pub trait IsPartitionLocked: Send + Sync {
     /// Return `Ok(())` if the partition is locked, or an error if already unlocked.
     fn is_partition_locked(&self) -> Result<(), Report<PartitionUnlocked>>;

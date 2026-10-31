@@ -12,7 +12,6 @@ edition = "2024"
 chrono = { version = "0.4.45" }
 dirs = { version = "7.0.0" }
 insta = { version = "1.48.0" }
-mockall = { version = "0.15.0" }
 nix = { version = "0.31.3", features = ["user"] }
 owo-colors = { version = "4.4.0" }
 rpassword = { version = "7.5.4" }

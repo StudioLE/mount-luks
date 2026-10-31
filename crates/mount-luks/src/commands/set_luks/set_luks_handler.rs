@@ -75,102 +75,56 @@ impl SetLuksHandler {
 pub struct KeyAlreadyExists;
 
 #[cfg(test)]
-impl SetLuksHandler {
-    /// Create a [`SetLuksHandler`] with all adapters succeeding by default.
-    pub fn mock() -> Self {
-        let mut is_root = MockIsRoot::new();
-        is_root.expect_is_root().returning(|| Ok(()));
-        let mut is_luks = MockIsLuks::new();
-        is_luks.expect_is_luks().returning(|_| Ok(()));
-        let mut check_key = MockCheckKey::new();
-        check_key
-            .expect_check_key()
-            .returning(|_, _| Err(Report::new(CheckKeyError)));
-        let mut add_key = MockAddKey::new();
-        add_key.expect_add_key().returning(|_, _, _| Ok(()));
-        let mut get_key = MockGetKey::new();
-        get_key
-            .expect_get()
-            .returning(|| Ok(String::from("new-key")));
-        let mut prompt = MockPromptPassword::new();
-        prompt
-            .expect_prompt()
-            .returning(|_| Ok(String::from("passphrase")));
-        let mut resolve_partition = MockResolvePartition::new();
-        resolve_partition
-            .expect_resolve_partition()
-            .returning(|| Ok(PathBuf::from("/dev/fake-partition")));
-        Self {
-            is_root: Arc::new(is_root),
-            is_luks: Arc::new(is_luks),
-            check_key: Arc::new(check_key),
-            add_key: Arc::new(add_key),
-            get_key: Arc::new(get_key),
-            prompt: Arc::new(prompt),
-            resolve_partition: Arc::new(resolve_partition),
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
+    /// [`SetLuksHandler::execute`] when the key isn't on the partition yet.
     #[test]
-    fn set_luks_succeeds() {
+    fn set_luks_handler_execute() {
         // Arrange
-        let handler = SetLuksHandler::mock();
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(CheckKeyStub {
+                result: Err(CheckKeyError),
+            })
+            .build();
+        let handler = services.expect::<SetLuksHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        assert!(result.is_ok());
+        assert!(output.is_ok());
     }
 
+    /// [`SetLuksHandler::execute`] when the key is already on the partition.
     #[test]
-    fn set_luks_fails_when_key_exists() {
+    fn set_luks_handler_execute_key_exists() {
         // Arrange
-        let mut check_key = MockCheckKey::new();
-        check_key.expect_check_key().returning(|_, _| Ok(()));
-        let handler = SetLuksHandler {
-            check_key: Arc::new(check_key),
-            ..SetLuksHandler::mock()
-        };
-
+        let services = ServiceBuilder::new().with_test_services().build();
+        let handler = services.expect::<SetLuksHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<KeyAlreadyExists>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &KeyAlreadyExists);
+        let report = output.expect_err("should not be able to add an existing key");
+        let context = report.current_context().downcast_ref::<KeyAlreadyExists>();
+        assert_eq!(context, Some(&KeyAlreadyExists));
     }
 
+    /// [`SetLuksHandler::execute`] when the partition isn't encrypted with LUKS.
     #[test]
-    fn set_luks_fails_when_not_luks() {
+    fn set_luks_handler_execute_not_luks() {
         // Arrange
-        let mut is_luks = MockIsLuks::new();
-        is_luks
-            .expect_is_luks()
-            .returning(|_| Err(Report::new(IsLuksError::NotLuks)));
-        let handler = SetLuksHandler {
-            is_luks: Arc::new(is_luks),
-            ..SetLuksHandler::mock()
-        };
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(IsLuksStub {
+                result: Err(IsLuksError::NotLuks),
+            })
+            .build();
+        let handler = services.expect::<SetLuksHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<IsLuksError>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &IsLuksError::NotLuks);
+        let report = output.expect_err("should not be able to add a key without LUKS");
+        let context = report.current_context().downcast_ref::<IsLuksError>();
+        assert_eq!(context, Some(&IsLuksError::NotLuks));
     }
 }

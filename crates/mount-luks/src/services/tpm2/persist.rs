@@ -3,7 +3,6 @@ use crate::prelude::*;
 /// Make a TPM object persistent.
 ///
 /// - <https://tpm2-tools.readthedocs.io/en/latest/man/tpm2_evictcontrol.1/>
-#[cfg_attr(test, mockall::automock)]
 pub trait Persist: Send + Sync {
     /// Make a transient TPM object persistent at the given handle.
     fn persist(&self, handle: PersistentHandle) -> Result<(), Report<PersistError>>;

@@ -4,7 +4,6 @@ use crate::prelude::*;
 use nix::unistd::Uid;
 
 /// Check that the current process is running as root.
-#[cfg_attr(test, mockall::automock)]
 pub trait IsRoot: Send + Sync {
     /// Return `Ok(())` if the process is running as root, or an error otherwise.
     fn is_root(&self) -> Result<(), Report<RootRequired>>;
@@ -33,14 +32,16 @@ pub struct RootRequired;
 mod tests {
     use super::*;
 
+    /// [`IsRootAdapter::is_root`] when not running as root.
     #[test]
-    fn _is_root() {
+    fn is_root_adapter_is_root() {
         // Arrange
+        let services = ServiceBuilder::new().with_test_services().build();
+        let adapter = services.expect::<IsRootAdapter>();
         // Act
-        let result = IsRootAdapter.is_root();
+        let output = adapter.is_root();
         // Assert
-        let error = result.expect_err("should be an error");
-        let context = error.current_context();
-        assert_eq!(context, &RootRequired);
+        let report = output.expect_err("should not be root");
+        assert_eq!(report.current_context(), &RootRequired);
     }
 }

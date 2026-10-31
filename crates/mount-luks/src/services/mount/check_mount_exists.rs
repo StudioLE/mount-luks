@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 /// Check that the mount point directory exists.
-#[cfg_attr(test, mockall::automock)]
 pub trait CheckMountExists: Send + Sync {
     /// Return `Ok(())` if the mount point exists, or an error otherwise.
     fn check_mount_exists(&self) -> Result<(), Report<NoMount>>;

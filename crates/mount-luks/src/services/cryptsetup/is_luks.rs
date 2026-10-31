@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 /// Check if a partition is encrypted with LUKS.
-#[cfg_attr(test, mockall::automock)]
 pub trait IsLuks: Send + Sync {
     /// Check if a partition is LUKS encrypted.
     fn is_luks(&self, partition: &Path) -> Result<(), Report<IsLuksError>>;

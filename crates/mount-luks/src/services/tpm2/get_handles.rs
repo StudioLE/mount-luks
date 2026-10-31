@@ -3,7 +3,6 @@ use crate::prelude::*;
 /// Get persistent TPM handles.
 ///
 /// - <https://tpm2-tools.readthedocs.io/en/latest/man/tpm2_getcap.1/>
-#[cfg_attr(test, mockall::automock)]
 pub trait GetHandles: Send + Sync {
     /// List all persistent TPM handles.
     fn get_handles(&self) -> Result<Vec<PersistentHandle>, Report<GetHandlesError>>;

@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 /// Mount a partition.
-#[cfg_attr(test, mockall::automock)]
 pub trait MountPartition: Send + Sync {
     /// Mount a device at the given path.
     fn mount(&self, device: &Path, mount_path: &Path) -> Result<(), Report<MountPartitionError>>;

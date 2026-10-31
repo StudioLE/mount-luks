@@ -3,7 +3,6 @@ use crate::prelude::*;
 /// Load a TPM object.
 ///
 /// - <https://tpm2-tools.readthedocs.io/en/latest/man/tpm2_load.1/>
-#[cfg_attr(test, mockall::automock)]
 pub trait LoadObject: Send + Sync {
     /// Load both the private and public portions of an object into the TPM.
     fn load_object(&self) -> Result<(), Report<LoadObjectError>>;

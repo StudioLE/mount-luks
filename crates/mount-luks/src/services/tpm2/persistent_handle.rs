@@ -44,6 +44,12 @@ impl PersistentHandle {
     pub const fn offset(self) -> u16 {
         self.0
     }
+
+    /// Create a [`PersistentHandle`] fixture for testing.
+    #[cfg(test)]
+    pub fn fixture() -> Self {
+        Self::from_offset(1)
+    }
 }
 
 impl TryFrom<u32> for PersistentHandle {

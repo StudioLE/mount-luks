@@ -3,7 +3,6 @@ use crate::prelude::*;
 /// Unseal data from a TPM object.
 ///
 /// - <https://tpm2-tools.readthedocs.io/en/latest/man/tpm2_unseal.1/>
-#[cfg_attr(test, mockall::automock)]
 pub trait Unseal: Send + Sync {
     /// Unseal data from a persistent TPM object.
     fn unseal(&self, handle: PersistentHandle) -> Result<String, Report<UnsealError>>;
@@ -101,16 +100,22 @@ ERROR:esys:src/tss2-esys/api/Esys_Unseal.c:98:Esys_Unseal() Esys Finish ErrorCod
 ERROR: Esys_Unseal(0x99D) - tpm:session(1):a policy check failed
 ERROR: Unable to run tpm2_unseal";
 
+    /// [`parse_code`] with a PCR changed error.
     #[test]
-    fn parse_code_0x128() {
-        assert_eq!(parse_code(PCR_CHANGED_STDERR).as_deref(), Some("0x128"));
+    fn parse_code() {
+        assert_eq!(
+            super::parse_code(PCR_CHANGED_STDERR).as_deref(),
+            Some("0x128")
+        );
     }
 
+    /// [`parse_code`] without an `Esys_Unseal` line.
     #[test]
     fn parse_code_missing() {
-        assert_eq!(parse_code("ERROR: Unable to run tpm2_unseal"), None);
+        assert_eq!(super::parse_code("ERROR: Unable to run tpm2_unseal"), None);
     }
 
+    /// [`prepare_report`] with a PCR changed error.
     #[test]
     fn prepare_report_pcr_changed() {
         // Arrange
@@ -124,6 +129,7 @@ ERROR: Unable to run tpm2_unseal";
         assert_eq!(*report.current_context(), UnsealError::PcrChanged);
     }
 
+    /// [`prepare_report`] with a policy check error.
     #[test]
     fn prepare_report_failed() {
         // Arrange
@@ -137,10 +143,12 @@ ERROR: Unable to run tpm2_unseal";
         assert_eq!(*report.current_context(), UnsealError::Failed);
     }
 
+    /// [`Attempt::is_retryable`] for [`Unseal`] with each [`UnsealError`].
     #[test]
     fn unseal_is_retryable() {
         // Arrange
-        let unseal: Arc<dyn Unseal> = Arc::new(MockUnseal::new());
+        let services = ServiceBuilder::new().with_test_services().build();
+        let unseal = services.expect_trait::<dyn Unseal>();
 
         // Act
         let pcr_changed = unseal.is_retryable(&Report::new(UnsealError::PcrChanged));

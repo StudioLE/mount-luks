@@ -2,7 +2,6 @@ use crate::prelude::*;
 use std::process::Stdio;
 
 /// Validate a key against a LUKS partition.
-#[cfg_attr(test, mockall::automock)]
 pub trait CheckKey: Send + Sync {
     /// Check if a key is valid for a LUKS partition.
     fn check_key(&self, partition: &Path, key: &str) -> Result<(), Report<CheckKeyError>>;

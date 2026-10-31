@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::convert::Infallible;
 use usage_rs::Cli as UsageCli;
 
 /// Parsed CLI arguments.
@@ -17,6 +16,18 @@ pub struct CliArgs {
     /// Subcommand to execute
     #[usage(subcommand)]
     pub command: Option<Subcommand>,
+}
+
+impl CliArgs {
+    /// Create a [`CliArgs`] fixture for testing.
+    #[cfg(test)]
+    pub fn fixture() -> Self {
+        Self {
+            config: None,
+            log_level: None,
+            command: None,
+        }
+    }
 }
 
 impl FromServices for CliArgs {

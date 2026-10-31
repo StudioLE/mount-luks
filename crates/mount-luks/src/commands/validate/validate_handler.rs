@@ -48,91 +48,54 @@ impl ValidateHandler {
 }
 
 #[cfg(test)]
-impl ValidateHandler {
-    /// Create a [`ValidateHandler`] with all adapters succeeding by default.
-    pub fn mock() -> Self {
-        let mut is_root = MockIsRoot::new();
-        is_root.expect_is_root().returning(|| Ok(()));
-        let mut resolve_partition = MockResolvePartition::new();
-        resolve_partition
-            .expect_resolve_partition()
-            .returning(|| Ok(PathBuf::from("/dev/fake-partition")));
-        let mut check_key = MockCheckKey::new();
-        check_key.expect_check_key().returning(|_, _| Ok(()));
-        let mut get_key = MockGetKey::new();
-        get_key
-            .expect_get()
-            .returning(|| Ok(String::from("test-key")));
-        Self {
-            is_root: Arc::new(is_root),
-            resolve_partition: Arc::new(resolve_partition),
-            check_key: Arc::new(check_key),
-            get_key: Arc::new(get_key),
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
+    /// [`ValidateHandler::execute`] with a valid key.
     #[test]
-    fn validate_succeeds_with_valid_key() {
+    fn validate_handler_execute() {
         // Arrange
-        let handler = ValidateHandler::mock();
-
+        let services = ServiceBuilder::new().with_test_services().build();
+        let handler = services.expect::<ValidateHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        assert!(result.is_ok());
+        assert!(output.is_ok());
     }
 
+    /// [`ValidateHandler::execute`] with an invalid key.
     #[test]
-    fn validate_fails_with_invalid_key() {
+    fn validate_handler_execute_invalid_key() {
         // Arrange
-        let mut check_key = MockCheckKey::new();
-        check_key
-            .expect_check_key()
-            .returning(|_, _| Err(Report::new(CheckKeyError)));
-        let handler = ValidateHandler {
-            check_key: Arc::new(check_key),
-            ..ValidateHandler::mock()
-        };
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(CheckKeyStub {
+                result: Err(CheckKeyError),
+            })
+            .build();
+        let handler = services.expect::<ValidateHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<CheckKeyError>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &CheckKeyError);
+        let report = output.expect_err("should not be able to validate an invalid key");
+        let context = report.current_context().downcast_ref::<CheckKeyError>();
+        assert_eq!(context, Some(&CheckKeyError));
     }
 
+    /// [`ValidateHandler::execute`] with no key sources configured.
     #[test]
-    fn validate_fails_when_no_key_sources() {
+    fn validate_handler_execute_no_key_sources() {
         // Arrange
-        let mut get_key = MockGetKey::new();
-        get_key
-            .expect_get()
-            .returning(|| Err(Report::new(GetKeyError::Required)));
-        let handler = ValidateHandler {
-            get_key: Arc::new(get_key),
-            ..ValidateHandler::mock()
-        };
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options::fixture_without_key_sources())
+            .build();
+        let handler = services.expect::<ValidateHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<GetKeyError>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &GetKeyError::Required);
+        let report = output.expect_err("should not be able to validate without a key");
+        let context = report.current_context().downcast_ref::<GetKeyError>();
+        assert_eq!(context, Some(&GetKeyError::Required));
     }
 }

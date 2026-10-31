@@ -4,7 +4,6 @@ use std::process::Stdio;
 /// Create a sealed TPM object.
 ///
 /// - <https://tpm2-tools.readthedocs.io/en/latest/man/tpm2_create.1/>
-#[cfg_attr(test, mockall::automock)]
 pub trait CreateObject: Send + Sync {
     /// Seal input data into a TPM object.
     fn create_object(&self, input: &str) -> Result<(), Report<CreateObjectError>>;

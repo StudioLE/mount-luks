@@ -7,6 +7,7 @@ pub(crate) use crate::extensions::*;
 pub(crate) use crate::services::*;
 #[cfg(test)]
 pub(crate) use crate::testing::*;
+pub(crate) use std::convert::Infallible;
 pub(crate) use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use std::process::Command;

@@ -2,7 +2,6 @@ use crate::prelude::*;
 use std::process::Stdio;
 
 /// Add a key to a LUKS partition.
-#[cfg_attr(test, mockall::automock)]
 pub trait AddKey: Send + Sync {
     /// Add a new key to a LUKS partition using the existing passphrase.
     fn add_key(

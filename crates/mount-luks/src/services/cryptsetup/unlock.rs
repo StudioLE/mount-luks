@@ -2,7 +2,6 @@ use crate::prelude::*;
 use std::process::Stdio;
 
 /// Unlock a LUKS partition.
-#[cfg_attr(test, mockall::automock)]
 pub trait Unlock: Send + Sync {
     /// Unlock a LUKS partition with the given key.
     fn unlock(&self, partition: &Path, mapper: &str, key: &str) -> Result<(), Report<UnlockError>>;

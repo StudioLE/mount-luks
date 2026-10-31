@@ -3,7 +3,6 @@ use crate::prelude::*;
 /// Create a TPM primary key.
 ///
 /// - <https://tpm2-tools.readthedocs.io/en/latest/man/tpm2_createprimary.1/>
-#[cfg_attr(test, mockall::automock)]
 pub trait CreatePrimary: Send + Sync {
     /// Create a primary key in the TPM owner hierarchy.
     fn create_primary(&self) -> Result<(), Report<CreatePrimaryError>>;

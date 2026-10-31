@@ -88,142 +88,75 @@ impl MountHandler {
 }
 
 #[cfg(test)]
-impl MountHandler {
-    /// Create a [`MountHandler`] with all adapters succeeding by default.
-    pub fn mock() -> Self {
-        let options = tests::make_options();
-        let mut is_root = MockIsRoot::new();
-        is_root.expect_is_root().returning(|| Ok(()));
-        let mut is_luks = MockIsLuks::new();
-        is_luks.expect_is_luks().returning(|_| Ok(()));
-        let mut unlock = MockUnlock::new();
-        unlock.expect_unlock().returning(|_, _, _| Ok(()));
-        let mut find_mount = MockFindMount::new();
-        find_mount.expect_check_not_mounted().returning(|_| Ok(()));
-        let mut mount = MockMountPartition::new();
-        mount.expect_mount().returning(|_, _| Ok(()));
-        let mut get_key = MockGetKey::new();
-        get_key
-            .expect_get()
-            .returning(|| Ok(String::from("test-key")));
-        let mut resolve_partition = MockResolvePartition::new();
-        resolve_partition
-            .expect_resolve_partition()
-            .returning(|| Ok(PathBuf::from("/dev/fake-partition")));
-        let mut check_mount = MockCheckMountExists::new();
-        check_mount.expect_check_mount_exists().returning(|| Ok(()));
-        let mut is_locked = MockIsPartitionLocked::new();
-        is_locked.expect_is_partition_locked().returning(|| Ok(()));
-        Self {
-            options,
-            is_root: Arc::new(is_root),
-            is_luks: Arc::new(is_luks),
-            unlock: Arc::new(unlock),
-            find_mount: Arc::new(find_mount),
-            mount: Arc::new(mount),
-            get_key: Arc::new(get_key),
-            resolve_partition: Arc::new(resolve_partition),
-            check_mount: Arc::new(check_mount),
-            is_locked: Arc::new(is_locked),
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
-    pub fn make_options() -> Arc<Options> {
-        Arc::new(Options {
-            partuuid: String::from("fake-uuid"),
-            mapper_name: String::from("fake-mapper"),
-            mount_path: PathBuf::from("/mnt/fake-mount"),
-            key_prompt: Some(true),
-            ..Options::default()
-        })
+    /// [`MountHandler::execute`] with every step succeeding.
+    #[test]
+    fn mount_handler_execute() {
+        // Arrange
+        let services = ServiceBuilder::new().with_test_services().build();
+        let handler = services.expect::<MountHandler>();
+        // Act
+        let output = handler.execute();
+        // Assert
+        assert!(output.is_ok());
     }
 
+    /// [`MountHandler::execute`] when the partition isn't encrypted with LUKS.
     #[test]
-    fn mount_succeeds_with_all_steps() {
+    fn mount_handler_execute_not_luks() {
         // Arrange
-        let handler = MountHandler::mock();
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(IsLuksStub {
+                result: Err(IsLuksError::NotLuks),
+            })
+            .build();
+        let handler = services.expect::<MountHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        assert!(result.is_ok());
+        let report = output.expect_err("should not be able to mount without LUKS");
+        let context = report.current_context().downcast_ref::<IsLuksError>();
+        assert_eq!(context, Some(&IsLuksError::NotLuks));
     }
 
+    /// [`MountHandler::execute`] when the mount path is already mounted.
     #[test]
-    fn mount_fails_when_not_luks() {
+    fn mount_handler_execute_already_mounted() {
         // Arrange
-        let mut is_luks = MockIsLuks::new();
-        is_luks
-            .expect_is_luks()
-            .returning(|_| Err(Report::new(IsLuksError::NotLuks)));
-        let handler = MountHandler {
-            is_luks: Arc::new(is_luks),
-            ..MountHandler::mock()
-        };
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(FindMountStub {
+                result: Err(AlreadyMounted),
+            })
+            .build();
+        let handler = services.expect::<MountHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<IsLuksError>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &IsLuksError::NotLuks);
+        let report = output.expect_err("should not be able to mount twice");
+        let context = report.current_context().downcast_ref::<AlreadyMounted>();
+        assert_eq!(context, Some(&AlreadyMounted));
     }
 
+    /// [`MountHandler::execute`] when the partition can't be unlocked.
     #[test]
-    fn mount_fails_when_already_mounted() {
+    fn mount_handler_execute_unlock_error() {
         // Arrange
-        let mut find_mount = MockFindMount::new();
-        find_mount
-            .expect_check_not_mounted()
-            .returning(|_| Err(Report::new(AlreadyMounted)));
-        let handler = MountHandler {
-            find_mount: Arc::new(find_mount),
-            ..MountHandler::mock()
-        };
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(UnlockStub {
+                result: Err(UnlockError),
+            })
+            .build();
+        let handler = services.expect::<MountHandler>();
         // Act
-        let result = handler.execute();
-
+        let output = handler.execute();
         // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<AlreadyMounted>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &AlreadyMounted);
-    }
-
-    #[test]
-    fn mount_fails_when_unlock_fails() {
-        // Arrange
-        let mut unlock = MockUnlock::new();
-        unlock
-            .expect_unlock()
-            .returning(|_, _, _| Err(Report::new(UnlockError)));
-        let handler = MountHandler {
-            unlock: Arc::new(unlock),
-            ..MountHandler::mock()
-        };
-
-        // Act
-        let result = handler.execute();
-
-        // Assert
-        let error = result.expect_err("should be an error");
-        let error = error
-            .current_context()
-            .downcast_ref::<UnlockError>()
-            .expect("should be able to downcast");
-        assert_eq!(error, &UnlockError);
+        let report = output.expect_err("should not be able to mount when locked");
+        let context = report.current_context().downcast_ref::<UnlockError>();
+        assert_eq!(context, Some(&UnlockError));
     }
 }

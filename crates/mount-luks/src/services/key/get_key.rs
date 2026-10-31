@@ -4,7 +4,6 @@ use crate::prelude::*;
 use std::fs::read_to_string;
 
 /// Retrieve the composite key from all configured sources.
-#[cfg_attr(test, mockall::automock)]
 pub trait GetKey: Send + Sync {
     /// Get the key by concatenating all sources of key material.
     fn get(&self) -> Result<String, Report<GetKeyError>>;
@@ -90,277 +89,235 @@ mod tests {
     use super::*;
     use std::fs;
 
-    fn make_adapter(options: Options) -> GetKeyAdapter {
-        let unseal = MockUnseal::new();
-        let prompt = MockPromptPassword::new();
-        GetKeyAdapter {
-            options: Arc::new(options),
-            unseal: Arc::new(Retry::<dyn Unseal>::new(Arc::new(unseal))),
-            prompt: Arc::new(prompt),
-        }
-    }
-
-    fn make_adapter_with(
-        options: Options,
-        unseal: MockUnseal,
-        prompt: MockPromptPassword,
-    ) -> GetKeyAdapter {
-        GetKeyAdapter {
-            options: Arc::new(options),
-            unseal: Arc::new(Retry::<dyn Unseal>::new(Arc::new(unseal))),
-            prompt: Arc::new(prompt),
-        }
-    }
-
+    /// [`GetKeyAdapter::get`] with only a key file.
     #[test]
-    fn get_key_from_file_only() {
+    fn get_key_adapter_get_key_file() {
         // Arrange
         let dir = TempDirectory::default()
             .create()
-            .expect("should create temp directory");
+            .expect("should be able to create temp directory");
         let key_path = dir.join("test.key");
-        fs::write(&key_path, "file-key").expect("should write key file");
-        let adapter = make_adapter(Options {
-            key_path: Some(key_path),
-            ..Options::default()
-        });
-
-        // Act
-        let result = adapter.get();
-
-        // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "file-key");
-    }
-
-    #[test]
-    fn get_key_from_tpm_only() {
-        // Arrange
-        let handle = PersistentHandle::new(0x81000000).expect("valid handle");
-        let mut unseal = MockUnseal::new();
-        unseal
-            .expect_unseal()
-            .returning(|_| Ok(String::from("tpm-key")));
-        let adapter = make_adapter_with(
-            Options {
-                tpm_handle: Some(handle),
-                ..Options::default()
-            },
-            unseal,
-            MockPromptPassword::new(),
-        );
-
-        // Act
-        let result = adapter.get();
-
-        // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "tpm-key");
-    }
-
-    #[test]
-    fn get_key_from_prompt_only() {
-        // Arrange
-        let mut prompt = MockPromptPassword::new();
-        prompt
-            .expect_prompt()
-            .returning(|_| Ok(String::from("prompt-key")));
-        let adapter = make_adapter_with(
-            Options {
-                key_prompt: Some(true),
-                ..Options::default()
-            },
-            MockUnseal::new(),
-            prompt,
-        );
-
-        // Act
-        let result = adapter.get();
-
-        // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "prompt-key");
-    }
-
-    #[test]
-    fn get_key_concatenates_all_sources() {
-        // Arrange
-        let dir = TempDirectory::default()
-            .create()
-            .expect("should create temp directory");
-        let key_path = dir.join("test.key");
-        fs::write(&key_path, "file").expect("should write key file");
-        let handle = PersistentHandle::new(0x81000000).expect("valid handle");
-        let mut unseal = MockUnseal::new();
-        unseal
-            .expect_unseal()
-            .returning(|_| Ok(String::from("tpm")));
-        let mut prompt = MockPromptPassword::new();
-        prompt
-            .expect_prompt()
-            .returning(|_| Ok(String::from("prompt")));
-        let adapter = make_adapter_with(
-            Options {
+        fs::write(&key_path, "file-key").expect("should be able to write key file");
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
                 key_path: Some(key_path),
-                tpm_handle: Some(handle),
-                key_prompt: Some(true),
-                ..Options::default()
-            },
-            unseal,
-            prompt,
-        );
-
+                ..Options::fixture_without_key_sources()
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "filetpmprompt");
+        assert_eq!(output.ok(), Some(String::from("file-key")));
     }
 
+    /// [`GetKeyAdapter::get`] with only the TPM.
     #[test]
-    fn get_key_fails_when_no_sources() {
+    fn get_key_adapter_get_tpm() {
         // Arrange
-        let adapter = make_adapter(Options::default());
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                tpm_handle: Some(PersistentHandle::fixture()),
+                ..Options::fixture_without_key_sources()
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        let report = result.expect_err("should be an error when no key sources are configured");
-        assert_eq!(*report.current_context(), GetKeyError::Required);
+        assert_eq!(output.ok(), Some(String::from("fixture-tpm-key")));
     }
 
+    /// [`GetKeyAdapter::get`] with only the prompt.
     #[test]
-    fn get_key_with_empty_key_file() {
+    fn get_key_adapter_get_prompt() {
+        // Arrange
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                key_prompt: Some(true),
+                ..Options::fixture_without_key_sources()
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
+        // Act
+        let output = adapter.get();
+        // Assert
+        assert_eq!(output.ok(), Some(String::from("fixture-password")));
+    }
+
+    /// [`GetKeyAdapter::get`] with a key file, the TPM, and the prompt.
+    #[test]
+    fn get_key_adapter_get_all_sources() {
         // Arrange
         let dir = TempDirectory::default()
             .create()
-            .expect("should create temp directory");
+            .expect("should be able to create temp directory");
         let key_path = dir.join("test.key");
-        fs::write(&key_path, "").expect("should write key file");
-        let adapter = make_adapter(Options {
-            key_path: Some(key_path),
-            ..Options::default()
-        });
-
+        fs::write(&key_path, "file").expect("should be able to write key file");
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                key_path: Some(key_path),
+                ..Options::fixture()
+            })
+            .with_instance(UnsealStub {
+                key: Ok(String::from("tpm")),
+            })
+            .with_instance(PromptPasswordStub {
+                password: Ok(String::from("prompt")),
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "");
+        assert_eq!(output.ok(), Some(String::from("filetpmprompt")));
     }
 
+    /// [`GetKeyAdapter::get`] with no key sources.
     #[test]
-    fn get_key_with_empty_tpm_value() {
+    fn get_key_adapter_get_no_sources() {
         // Arrange
-        let handle = PersistentHandle::new(0x81000000).expect("valid handle");
-        let mut unseal = MockUnseal::new();
-        unseal.expect_unseal().returning(|_| Ok(String::new()));
-        let adapter = make_adapter_with(
-            Options {
-                tpm_handle: Some(handle),
-                ..Options::default()
-            },
-            unseal,
-            MockPromptPassword::new(),
-        );
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options::fixture_without_key_sources())
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "");
+        let report = output.expect_err("should not be able to get a key without sources");
+        assert_eq!(report.current_context(), &GetKeyError::Required);
     }
 
+    /// [`GetKeyAdapter::get`] with an empty key file.
     #[test]
-    fn get_key_with_empty_prompt_value() {
+    fn get_key_adapter_get_empty_key_file() {
         // Arrange
-        let mut prompt = MockPromptPassword::new();
-        prompt
-            .expect_prompt()
-            .returning(|_| Ok(String::from("   ")));
-        let adapter = make_adapter_with(
-            Options {
+        let dir = TempDirectory::default()
+            .create()
+            .expect("should be able to create temp directory");
+        let key_path = dir.join("test.key");
+        fs::write(&key_path, "").expect("should be able to write key file");
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                key_path: Some(key_path),
+                ..Options::fixture_without_key_sources()
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
+        // Act
+        let output = adapter.get();
+        // Assert
+        assert_eq!(output.ok(), Some(String::new()));
+    }
+
+    /// [`GetKeyAdapter::get`] with an empty TPM value.
+    #[test]
+    fn get_key_adapter_get_empty_tpm() {
+        // Arrange
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                tpm_handle: Some(PersistentHandle::fixture()),
+                ..Options::fixture_without_key_sources()
+            })
+            .with_instance(UnsealStub {
+                key: Ok(String::new()),
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
+        // Act
+        let output = adapter.get();
+        // Assert
+        assert_eq!(output.ok(), Some(String::new()));
+    }
+
+    /// [`GetKeyAdapter::get`] with a prompt value of only whitespace.
+    #[test]
+    fn get_key_adapter_get_empty_prompt() {
+        // Arrange
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
                 key_prompt: Some(true),
-                ..Options::default()
-            },
-            MockUnseal::new(),
-            prompt,
-        );
-
+                ..Options::fixture_without_key_sources()
+            })
+            .with_instance(PromptPasswordStub {
+                password: Ok(String::from("   ")),
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        assert!(result.is_ok());
-        assert_eq!(result.expect("should be ok"), "");
+        assert_eq!(output.ok(), Some(String::new()));
     }
 
+    /// [`GetKeyAdapter::get`] with a key file that doesn't exist.
     #[test]
-    fn get_key_fails_when_key_file_missing() {
+    fn get_key_adapter_get_missing_key_file() {
         // Arrange
-        let adapter = make_adapter(Options {
-            key_path: Some(PathBuf::from("/nonexistent/path/to/missing.key")),
-            ..Options::default()
-        });
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                key_path: Some(PathBuf::from("/nonexistent/path/to/missing.key")),
+                ..Options::fixture_without_key_sources()
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        let report = result.expect_err("should be an error when key file is missing");
-        assert_eq!(*report.current_context(), GetKeyError::KeyFile);
+        let report = output.expect_err("should not be able to read a missing key file");
+        assert_eq!(report.current_context(), &GetKeyError::KeyFile);
     }
 
+    /// [`GetKeyAdapter::get`] when the TPM can't unseal.
     #[test]
-    fn get_key_fails_when_tpm_unseal_fails() {
+    fn get_key_adapter_get_unseal_error() {
         // Arrange
-        let handle = PersistentHandle::new(0x81000000).expect("valid handle");
-        let mut unseal = MockUnseal::new();
-        unseal
-            .expect_unseal()
-            .returning(|_| Err(Report::new(UnsealError::Failed)));
-        let adapter = make_adapter_with(
-            Options {
-                tpm_handle: Some(handle),
-                ..Options::default()
-            },
-            unseal,
-            MockPromptPassword::new(),
-        );
-
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
+                tpm_handle: Some(PersistentHandle::fixture()),
+                ..Options::fixture_without_key_sources()
+            })
+            .with_instance(UnsealStub {
+                key: Err(UnsealError::Failed),
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        let report = result.expect_err("should be an error when TPM unseal fails");
-        assert_eq!(*report.current_context(), GetKeyError::Tpm);
+        let report = output.expect_err("should not be able to get a key when unseal fails");
+        assert_eq!(report.current_context(), &GetKeyError::Tpm);
     }
 
+    /// [`GetKeyAdapter::get`] when the prompt can't be read.
     #[test]
-    fn get_key_fails_when_prompt_fails() {
+    fn get_key_adapter_get_prompt_error() {
         // Arrange
-        let mut prompt = MockPromptPassword::new();
-        prompt
-            .expect_prompt()
-            .returning(|_| Err(Report::new(PromptPasswordError)));
-        let adapter = make_adapter_with(
-            Options {
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(Options {
                 key_prompt: Some(true),
-                ..Options::default()
-            },
-            MockUnseal::new(),
-            prompt,
-        );
-
+                ..Options::fixture_without_key_sources()
+            })
+            .with_instance(PromptPasswordStub {
+                password: Err(PromptPasswordError),
+            })
+            .build();
+        let adapter = services.expect::<GetKeyAdapter>();
         // Act
-        let result = adapter.get();
-
+        let output = adapter.get();
         // Assert
-        let report = result.expect_err("should be an error when prompt fails");
-        assert_eq!(*report.current_context(), GetKeyError::Prompt);
+        let report = output.expect_err("should not be able to get a key when the prompt fails");
+        assert_eq!(report.current_context(), &GetKeyError::Prompt);
     }
 }

@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 /// Check that a partition is not already mounted.
-#[cfg_attr(test, mockall::automock)]
 pub trait FindMount: Send + Sync {
     /// Return `Ok(())` if the mount path is not mounted, or an error if it is.
     fn check_not_mounted(&self, mount_path: &Path) -> Result<(), Report<AlreadyMounted>>;

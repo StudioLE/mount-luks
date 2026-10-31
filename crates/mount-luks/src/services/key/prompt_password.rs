@@ -4,7 +4,6 @@ use crate::prelude::*;
 use rpassword::prompt_password;
 
 /// Prompt the user for a password.
-#[cfg_attr(test, mockall::automock)]
 pub trait PromptPassword: Send + Sync {
     /// Display a message and read a password from the terminal.
     fn prompt(&self, message: &str) -> Result<String, Report<PromptPasswordError>>;

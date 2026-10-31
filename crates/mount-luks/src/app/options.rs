@@ -49,6 +49,33 @@ impl Options {
     pub fn get_mapper_path(&self) -> PathBuf {
         PathBuf::from("/dev/mapper").join(&self.mapper_name)
     }
+
+    /// Create an [`Options`] fixture for testing.
+    ///
+    /// - Enables the TPM and prompt key sources, but not the key file
+    #[cfg(test)]
+    pub fn fixture() -> Self {
+        Self {
+            partuuid: String::from("fixture-partuuid"),
+            mapper_name: String::from("fixture"),
+            mount_path: PathBuf::from("/mnt/fixture"),
+            key_path: None,
+            tpm_handle: Some(PersistentHandle::fixture()),
+            key_prompt: Some(true),
+            no_header: Some(true),
+        }
+    }
+
+    /// Create an [`Options`] fixture with every key source disabled.
+    #[cfg(test)]
+    pub fn fixture_without_key_sources() -> Self {
+        Self {
+            key_path: None,
+            tpm_handle: None,
+            key_prompt: None,
+            ..Self::fixture()
+        }
+    }
 }
 
 impl FromServices for Options {
