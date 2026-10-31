@@ -131,10 +131,10 @@ impl<'de> Deserialize<'de> for PersistentHandle {
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum PersistentHandleError {
     /// The address is below [`PersistentHandle::BASE`].
-    #[error("Value must be greater than 0x81000000")]
+    #[error("Value must be at least 0x81000000")]
     Min,
     /// The offset from [`PersistentHandle::BASE`] doesn't fit in a `u16`.
-    #[error("Value must be less than 0x81FFFFFF")]
+    #[error("Value must be at most 0x8100FFFF")]
     Max,
     /// The value isn't a hex number.
     #[error("Invalid hex string")]
@@ -178,6 +178,21 @@ mod tests {
         assert_eq!(
             PersistentHandle::new(0x80000000),
             Err(PersistentHandleError::Min)
+        );
+    }
+
+    /// [`PersistentHandle::new`] at the bounds named in each [`PersistentHandleError`] message.
+    #[test]
+    fn persistent_handle_new_error_bounds() {
+        assert!(PersistentHandle::new(0x81000000).is_ok());
+        assert_eq!(
+            PersistentHandle::new(0x80FFFFFF),
+            Err(PersistentHandleError::Min)
+        );
+        assert!(PersistentHandle::new(0x8100FFFF).is_ok());
+        assert_eq!(
+            PersistentHandle::new(0x81010000),
+            Err(PersistentHandleError::Max)
         );
     }
 
