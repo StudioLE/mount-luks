@@ -141,7 +141,7 @@ fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
 }
 
 /// Errors returned by [`Options`].
-#[derive(Clone, Copy, Debug, Error, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum OptionsError {
     #[error("Unable to read config directory")]
     ReadDir,

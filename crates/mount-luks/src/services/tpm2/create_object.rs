@@ -32,11 +32,14 @@ impl CreateObject for Tpm2Adapter {
             .write_to_stdin(input)
             .wait_with_output()
             .expect("should be able to wait for `tpm2_create`")
-            .ok_or(CreateObjectError)
+            .ok_or(CreateObjectError::Failed)
     }
 }
 
-/// Error returned by [`CreateObject::create_object`].
+/// Errors returned by [`CreateObject::create_object`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Unable to create TPM object")]
-pub struct CreateObjectError;
+pub enum CreateObjectError {
+    /// `tpm2_create` exited with an error.
+    #[error("Unable to create TPM object")]
+    Failed,
+}

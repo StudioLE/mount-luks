@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-/// [`IsRoot`] returning a fixed result or [`RootRequired`].
+/// [`IsRoot`] returning a fixed result or [`IsRootError`].
 pub struct IsRootStub {
     /// Value returned by [`IsRoot::is_root`].
-    pub result: Result<(), RootRequired>,
+    pub result: Result<(), IsRootError>,
 }
 
 impl FromServices for IsRootStub {
@@ -17,7 +17,7 @@ impl FromServices for IsRootStub {
 }
 
 impl IsRoot for IsRootStub {
-    fn is_root(&self) -> Result<(), Report<RootRequired>> {
+    fn is_root(&self) -> Result<(), Report<IsRootError>> {
         self.result.map_err(Report::new)
     }
 }

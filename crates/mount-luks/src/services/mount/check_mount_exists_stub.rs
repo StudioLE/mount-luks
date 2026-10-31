@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-/// [`CheckMountExists`] returning a fixed result or [`NoMount`].
+/// [`CheckMountExists`] returning a fixed result or [`CheckMountExistsError`].
 pub struct CheckMountExistsStub {
     /// Value returned by [`CheckMountExists::check_mount_exists`].
-    pub result: Result<(), NoMount>,
+    pub result: Result<(), CheckMountExistsError>,
 }
 
 impl FromServices for CheckMountExistsStub {
@@ -17,7 +17,7 @@ impl FromServices for CheckMountExistsStub {
 }
 
 impl CheckMountExists for CheckMountExistsStub {
-    fn check_mount_exists(&self) -> Result<(), Report<NoMount>> {
+    fn check_mount_exists(&self) -> Result<(), Report<CheckMountExistsError>> {
         self.result.map_err(Report::new)
     }
 }

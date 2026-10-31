@@ -15,11 +15,14 @@ pub struct RpasswordAdapter;
 
 impl PromptPassword for RpasswordAdapter {
     fn prompt(&self, message: &str) -> Result<String, Report<PromptPasswordError>> {
-        prompt_password(message).change_context(PromptPasswordError)
+        prompt_password(message).change_context(PromptPasswordError::Read)
     }
 }
 
-/// Error returned by [`PromptPassword::prompt`].
+/// Errors returned by [`PromptPassword::prompt`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Unable to read password from prompt")]
-pub struct PromptPasswordError;
+pub enum PromptPasswordError {
+    /// Unable to read from the terminal.
+    #[error("Unable to read password from prompt")]
+    Read,
+}

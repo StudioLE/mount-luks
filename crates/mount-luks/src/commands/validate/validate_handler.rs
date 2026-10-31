@@ -19,32 +19,51 @@ pub struct ValidateHandler {
 
 impl ValidateHandler {
     /// Execute the validate workflow.
-    pub fn execute(&self) -> Result<(), StructuredError> {
+    pub fn execute(&self) -> Result<(), Report<ValidateError>> {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root.is_root().map_err(StructuredError::from)?;
+        self.is_root
+            .is_root()
+            .change_context(ValidateError::CheckRoot)?;
         progress.ok("Access granted");
 
         progress.step("Resolving partition");
         let partition = self
             .resolve_partition
             .resolve_partition()
-            .map_err(StructuredError::from)?;
+            .change_context(ValidateError::ResolvePartition)?;
         progress.ok(&format!("Resolved to {}", partition.display()));
 
         progress.step("Getting key");
-        let key = self.get_key.get().map_err(StructuredError::from)?;
+        let key = self.get_key.get().change_context(ValidateError::GetKey)?;
         progress.ok("Key retrieved");
 
         progress.step("Validating key against partition");
         self.check_key
             .check_key(&partition, &key)
-            .map_err(StructuredError::from)?;
+            .change_context(ValidateError::CheckKey)?;
         progress.ok("Key is valid");
 
         Ok(())
     }
+}
+
+/// Errors returned by [`ValidateHandler`].
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+pub enum ValidateError {
+    /// Unable to confirm the process is running as root.
+    #[error("Unable to confirm root privileges")]
+    CheckRoot,
+    /// Unable to resolve the PARTUUID to a device path.
+    #[error("Unable to resolve partition")]
+    ResolvePartition,
+    /// Unable to get the key.
+    #[error("Unable to get key")]
+    GetKey,
+    /// Unable to validate the key against the partition.
+    #[error("Unable to validate key")]
+    CheckKey,
 }
 
 #[cfg(test)]
@@ -70,7 +89,7 @@ mod tests {
         let services = ServiceBuilder::new()
             .with_test_services()
             .with_instance(CheckKeyStub {
-                result: Err(CheckKeyError),
+                result: Err(CheckKeyError::Incorrect),
             })
             .build();
         let handler = services.expect::<ValidateHandler>();
@@ -78,8 +97,7 @@ mod tests {
         let output = handler.execute();
         // Assert
         let report = output.expect_err("should not be able to validate an invalid key");
-        let context = report.current_context().downcast_ref::<CheckKeyError>();
-        assert_eq!(context, Some(&CheckKeyError));
+        assert_eq!(report.current_context(), &ValidateError::CheckKey);
     }
 
     /// [`ValidateHandler::execute`] with no key sources configured.
@@ -95,7 +113,6 @@ mod tests {
         let output = handler.execute();
         // Assert
         let report = output.expect_err("should not be able to validate without a key");
-        let context = report.current_context().downcast_ref::<GetKeyError>();
-        assert_eq!(context, Some(&GetKeyError::Required));
+        assert_eq!(report.current_context(), &ValidateError::GetKey);
     }
 }

@@ -5,7 +5,7 @@ use crate::prelude::*;
 /// Check that a partition is not already mounted.
 pub trait FindMount: Send + Sync {
     /// Return `Ok(())` if the mount path is not mounted, or an error if it is.
-    fn check_not_mounted(&self, mount_path: &Path) -> Result<(), Report<AlreadyMounted>>;
+    fn check_not_mounted(&self, mount_path: &Path) -> Result<(), Report<FindMountError>>;
 }
 
 /// Adapter wrapping the `findmnt` CLI tool.
@@ -13,7 +13,7 @@ pub trait FindMount: Send + Sync {
 pub struct FindmntAdapter;
 
 impl FindMount for FindmntAdapter {
-    fn check_not_mounted(&self, mount_path: &Path) -> Result<(), Report<AlreadyMounted>> {
+    fn check_not_mounted(&self, mount_path: &Path) -> Result<(), Report<FindMountError>> {
         let response = Command::new("findmnt")
             .arg("--noheadings")
             .arg(mount_path)
@@ -21,14 +21,17 @@ impl FindMount for FindmntAdapter {
             .expect("should be able to execute `findmnt`")
             .to_response();
         if response.status.success() {
-            Err(Report::new(AlreadyMounted).attach_path(mount_path))
+            Err(Report::new(FindMountError::AlreadyMounted).attach_path(mount_path))
         } else {
             Ok(())
         }
     }
 }
 
-/// Error returned by [`FindMount::check_not_mounted`] when the partition is already mounted.
+/// Errors returned by [`FindMount::check_not_mounted`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Partition is already mounted")]
-pub struct AlreadyMounted;
+pub enum FindMountError {
+    /// The mount path is already mounted.
+    #[error("Partition is already mounted")]
+    AlreadyMounted,
+}

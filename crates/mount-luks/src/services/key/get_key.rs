@@ -310,7 +310,7 @@ mod tests {
                 ..Options::fixture_without_key_sources()
             })
             .with_instance(PromptPasswordStub {
-                password: Err(PromptPasswordError),
+                password: Err(PromptPasswordError::Read),
             })
             .build();
         let adapter = services.expect::<GetKeyAdapter>();

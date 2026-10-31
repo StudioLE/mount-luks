@@ -19,11 +19,14 @@ impl CreatePrimary for Tpm2Adapter {
             .arg(TPM_PRIMARY_CONTEXT_PATH.as_path())
             .output()
             .expect("should be able to execute `tpm2_createprimary`")
-            .ok_or(CreatePrimaryError)
+            .ok_or(CreatePrimaryError::Failed)
     }
 }
 
-/// Error returned by [`CreatePrimary::create_primary`].
+/// Errors returned by [`CreatePrimary::create_primary`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Unable to create TPM primary key")]
-pub struct CreatePrimaryError;
+pub enum CreatePrimaryError {
+    /// `tpm2_createprimary` exited with an error.
+    #[error("Unable to create TPM primary key")]
+    Failed,
+}

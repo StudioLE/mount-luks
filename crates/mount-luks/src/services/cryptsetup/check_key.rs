@@ -22,11 +22,14 @@ impl CheckKey for CryptsetupAdapter {
             .write_to_stdin(key)
             .wait_with_output()
             .expect("should be able to wait on `cryptsetup luksOpen --test-passphrase`")
-            .ok_or(CheckKeyError)
+            .ok_or(CheckKeyError::Incorrect)
     }
 }
 
-/// Error returned by [`CheckKey::check_key`].
+/// Errors returned by [`CheckKey::check_key`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Key is incorrect")]
-pub struct CheckKeyError;
+pub enum CheckKeyError {
+    /// The key doesn't unlock the partition.
+    #[error("Key is incorrect")]
+    Incorrect,
+}

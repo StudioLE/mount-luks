@@ -19,11 +19,14 @@ impl MountPartition for MountAdapter {
             .arg(mount_path)
             .output()
             .expect("should be able to execute `mount`")
-            .ok_or(MountPartitionError)
+            .ok_or(MountPartitionError::Failed)
     }
 }
 
-/// Error returned by [`MountPartition::mount`].
+/// Errors returned by [`MountPartition::mount`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Failed to mount partition")]
-pub struct MountPartitionError;
+pub enum MountPartitionError {
+    /// `mount` exited with an error.
+    #[error("Failed to mount partition")]
+    Failed,
+}

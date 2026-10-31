@@ -22,11 +22,14 @@ impl Unlock for CryptsetupAdapter {
             .write_to_stdin(key)
             .wait_with_output()
             .expect("should be able to wait on `cryptsetup luksOpen`")
-            .ok_or(UnlockError)
+            .ok_or(UnlockError::Failed)
     }
 }
 
-/// Error returned by [`Unlock::unlock`].
+/// Errors returned by [`Unlock::unlock`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Failed to unlock LUKS partition")]
-pub struct UnlockError;
+pub enum UnlockError {
+    /// `cryptsetup luksOpen` exited with an error.
+    #[error("Failed to unlock LUKS partition")]
+    Failed,
+}

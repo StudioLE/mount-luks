@@ -21,11 +21,14 @@ impl LoadObject for Tpm2Adapter {
             .arg(TPM_OBJ_CONTEXT_PATH.as_path())
             .output()
             .expect("should be able to execute `tpm2_load`")
-            .ok_or(LoadObjectError)
+            .ok_or(LoadObjectError::Failed)
     }
 }
 
-/// Error returned by [`LoadObject::load_object`].
+/// Errors returned by [`LoadObject::load_object`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Unable to load object into the TPM")]
-pub struct LoadObjectError;
+pub enum LoadObjectError {
+    /// `tpm2_load` exited with an error.
+    #[error("Unable to load object into the TPM")]
+    Failed,
+}

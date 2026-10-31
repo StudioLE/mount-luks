@@ -25,33 +25,39 @@ pub struct SetLuksHandler {
 
 impl SetLuksHandler {
     /// Execute the set-luks workflow.
-    pub fn execute(&self) -> Result<(), StructuredError> {
+    pub fn execute(&self) -> Result<(), Report<SetLuksError>> {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root.is_root().map_err(StructuredError::from)?;
+        self.is_root
+            .is_root()
+            .change_context(SetLuksError::CheckRoot)?;
         progress.ok("Access granted");
 
         progress.step("Resolving partition");
         let partition = self
             .resolve_partition
             .resolve_partition()
-            .map_err(StructuredError::from)?;
+            .change_context(SetLuksError::ResolvePartition)?;
         progress.ok(&format!("Resolved to {}", partition.display()));
 
         progress.step("Checking if partition is encrypted with LUKS");
         self.is_luks
             .is_luks(&partition)
-            .map_err(StructuredError::from)?;
+            .change_context(SetLuksError::CheckLuks)?;
         progress.ok("Partition is encrypted with LUKS");
 
         progress.step("Getting new key");
-        let new_key = self.get_key.get().map_err(StructuredError::from)?;
+        let new_key = self.get_key.get().change_context(SetLuksError::GetKey)?;
         progress.ok("New key retrieved");
 
         progress.step("Checking if key already exists");
-        if self.check_key.check_key(&partition, &new_key).is_ok() {
-            return Err(Report::new(KeyAlreadyExists).attach_path(&partition).into());
+        match self.check_key.check_key(&partition, &new_key) {
+            Ok(()) => {
+                return Err(Report::new(SetLuksError::KeyExists).attach_path(&partition));
+            }
+            Err(report) if report.current_context() == &CheckKeyError::Incorrect => {}
+            Err(report) => return Err(report.change_context(SetLuksError::CheckKey)),
         }
         progress.ok("Key does not already exist");
 
@@ -59,20 +65,44 @@ impl SetLuksHandler {
         let existing_passphrase = self
             .prompt
             .prompt("Enter existing passphrase: ")
-            .map_err(StructuredError::from)?;
+            .change_context(SetLuksError::Prompt)?;
         self.add_key
             .add_key(&partition, existing_passphrase.trim(), &new_key)
-            .map_err(StructuredError::from)?;
+            .change_context(SetLuksError::AddKey)?;
         progress.ok("New key added to partition");
 
         Ok(())
     }
 }
 
-/// Error returned by [`SetLuksHandler::execute`] when the key is already present.
+/// Errors returned by [`SetLuksHandler`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Key already exists on this partition")]
-pub struct KeyAlreadyExists;
+pub enum SetLuksError {
+    /// Unable to confirm the process is running as root.
+    #[error("Unable to confirm root privileges")]
+    CheckRoot,
+    /// Unable to resolve the PARTUUID to a device path.
+    #[error("Unable to resolve partition")]
+    ResolvePartition,
+    /// Unable to confirm the partition is encrypted with LUKS.
+    #[error("Unable to confirm partition is encrypted with LUKS")]
+    CheckLuks,
+    /// Unable to get the new key.
+    #[error("Unable to get new key")]
+    GetKey,
+    /// Unable to check whether the key is already on the partition.
+    #[error("Unable to check if key already exists")]
+    CheckKey,
+    /// The key already unlocks the partition.
+    #[error("Key already exists on this partition")]
+    KeyExists,
+    /// Unable to read the existing passphrase.
+    #[error("Unable to read existing passphrase")]
+    Prompt,
+    /// Unable to add the key to the partition.
+    #[error("Unable to add key")]
+    AddKey,
+}
 
 #[cfg(test)]
 mod tests {
@@ -85,7 +115,7 @@ mod tests {
         let services = ServiceBuilder::new()
             .with_test_services()
             .with_instance(CheckKeyStub {
-                result: Err(CheckKeyError),
+                result: Err(CheckKeyError::Incorrect),
             })
             .build();
         let handler = services.expect::<SetLuksHandler>();
@@ -105,8 +135,7 @@ mod tests {
         let output = handler.execute();
         // Assert
         let report = output.expect_err("should not be able to add an existing key");
-        let context = report.current_context().downcast_ref::<KeyAlreadyExists>();
-        assert_eq!(context, Some(&KeyAlreadyExists));
+        assert_eq!(report.current_context(), &SetLuksError::KeyExists);
     }
 
     /// [`SetLuksHandler::execute`] when the partition isn't encrypted with LUKS.
@@ -124,7 +153,6 @@ mod tests {
         let output = handler.execute();
         // Assert
         let report = output.expect_err("should not be able to add a key without LUKS");
-        let context = report.current_context().downcast_ref::<IsLuksError>();
-        assert_eq!(context, Some(&IsLuksError::NotLuks));
+        assert_eq!(report.current_context(), &SetLuksError::CheckLuks);
     }
 }

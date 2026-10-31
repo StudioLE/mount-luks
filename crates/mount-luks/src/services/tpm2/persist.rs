@@ -18,12 +18,15 @@ impl Persist for Tpm2Adapter {
             .arg(handle.to_string())
             .output()
             .expect("should be able to execute `tpm2_evictcontrol`")
-            .ok_or(PersistError)
+            .ok_or(PersistError::Failed)
             .attach("Handle", handle)
     }
 }
 
-/// Error returned by [`Persist::persist`].
+/// Errors returned by [`Persist::persist`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Unable to persist TPM object")]
-pub struct PersistError;
+pub enum PersistError {
+    /// `tpm2_evictcontrol` exited with an error.
+    #[error("Unable to persist TPM object")]
+    Failed,
+}

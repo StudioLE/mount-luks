@@ -29,78 +29,105 @@ pub struct SetTpmHandler {
 
 impl SetTpmHandler {
     /// Execute the set-tpm workflow.
-    pub fn execute(&self) -> Result<(), StructuredError> {
+    pub fn execute(&self) -> Result<(), Report<SetTpmError>> {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root.is_root().map_err(StructuredError::from)?;
+        self.is_root
+            .is_root()
+            .change_context(SetTpmError::CheckRoot)?;
         progress.ok("Access granted");
 
         let handle = self
             .options
             .tpm_handle
-            .ok_or_else(|| StructuredError::new(HandleRequired))?;
+            .ok_or_else(|| Report::new(SetTpmError::HandleRequired))?;
 
         progress.step("Checking TPM handle availability");
         let handles = self
             .get_handles
             .get_handles()
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::GetHandles)?;
         if handles.contains(&handle) {
-            return Err(Report::new(HandleInUse).attach("Handle", handle).into());
+            return Err(Report::new(SetTpmError::HandleInUse).attach("Handle", handle));
         }
         progress.ok("TPM handle is available");
 
         progress.step("Creating TPM policy");
         self.create_policy
             .create_policy()
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::CreatePolicy)?;
         progress.ok("TPM policy created");
 
         progress.step("Creating TPM primary key");
         self.create_primary
             .create_primary()
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::CreatePrimary)?;
         progress.ok("TPM primary key created");
 
         progress.step("Getting key to seal");
         let key = self
             .prompt
             .prompt("Enter key to seal into TPM: ")
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::Prompt)?;
         progress.ok("Key retrieved");
 
         progress.step("Creating TPM object");
         self.create_object
             .create_object(key.trim())
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::CreateObject)?;
         progress.ok("TPM object created");
 
         progress.step("Loading TPM object");
         self.load_object
             .load_object()
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::LoadObject)?;
         progress.ok("TPM object loaded");
 
         progress.step("Persisting TPM object");
         self.persist
             .persist(handle)
-            .map_err(StructuredError::from)?;
+            .change_context(SetTpmError::Persist)?;
         progress.ok("TPM object persisted");
 
         Ok(())
     }
 }
 
-/// Error returned by [`SetTpmHandler::execute`] when no TPM handle is configured.
+/// Errors returned by [`SetTpmHandler`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("TPM handle is required")]
-pub struct HandleRequired;
-
-/// Error returned by [`SetTpmHandler::execute`] when the TPM handle is already in use.
-#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("TPM handle is already in use")]
-pub struct HandleInUse;
+pub enum SetTpmError {
+    /// Unable to confirm the process is running as root.
+    #[error("Unable to confirm root privileges")]
+    CheckRoot,
+    /// No TPM handle is configured.
+    #[error("TPM handle is required")]
+    HandleRequired,
+    /// Unable to list the persistent TPM handles.
+    #[error("Unable to get TPM handles")]
+    GetHandles,
+    /// The TPM handle already holds an object.
+    #[error("TPM handle is already in use")]
+    HandleInUse,
+    /// Unable to create the TPM policy.
+    #[error("Unable to create TPM policy")]
+    CreatePolicy,
+    /// Unable to create the TPM primary key.
+    #[error("Unable to create TPM primary key")]
+    CreatePrimary,
+    /// Unable to read the key to seal.
+    #[error("Unable to read key to seal")]
+    Prompt,
+    /// Unable to create the sealed TPM object.
+    #[error("Unable to create TPM object")]
+    CreateObject,
+    /// Unable to load the TPM object.
+    #[error("Unable to load TPM object")]
+    LoadObject,
+    /// Unable to persist the TPM object.
+    #[error("Unable to persist TPM object")]
+    Persist,
+}
 
 #[cfg(test)]
 mod tests {
@@ -133,8 +160,7 @@ mod tests {
         let output = handler.execute();
         // Assert
         let report = output.expect_err("should not be able to reuse a handle");
-        let context = report.current_context().downcast_ref::<HandleInUse>();
-        assert_eq!(context, Some(&HandleInUse));
+        assert_eq!(report.current_context(), &SetTpmError::HandleInUse);
     }
 
     /// [`SetTpmHandler::execute`] when the TPM policy can't be created.
@@ -144,7 +170,7 @@ mod tests {
         let services = ServiceBuilder::new()
             .with_test_services()
             .with_instance(CreatePolicyStub {
-                result: Err(CreatePolicyError),
+                result: Err(CreatePolicyError::Failed),
             })
             .build();
         let handler = services.expect::<SetTpmHandler>();
@@ -152,7 +178,6 @@ mod tests {
         let output = handler.execute();
         // Assert
         let report = output.expect_err("should not be able to seal without a policy");
-        let context = report.current_context().downcast_ref::<CreatePolicyError>();
-        assert_eq!(context, Some(&CreatePolicyError));
+        assert_eq!(report.current_context(), &SetTpmError::CreatePolicy);
     }
 }

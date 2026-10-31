@@ -6,7 +6,7 @@ use nix::unistd::Uid;
 /// Check that the current process is running as root.
 pub trait IsRoot: Send + Sync {
     /// Return `Ok(())` if the process is running as root, or an error otherwise.
-    fn is_root(&self) -> Result<(), Report<RootRequired>>;
+    fn is_root(&self) -> Result<(), Report<IsRootError>>;
 }
 
 /// Adapter checking the effective user id of the current process.
@@ -14,19 +14,22 @@ pub trait IsRoot: Send + Sync {
 pub struct IsRootAdapter;
 
 impl IsRoot for IsRootAdapter {
-    fn is_root(&self) -> Result<(), Report<RootRequired>> {
+    fn is_root(&self) -> Result<(), Report<IsRootError>> {
         if Uid::effective().is_root() {
             Ok(())
         } else {
-            Err(Report::new(RootRequired))
+            Err(Report::new(IsRootError::NotRoot))
         }
     }
 }
 
-/// Error returned by [`IsRoot::is_root`] when the process is not running as root.
-#[derive(Clone, Copy, Debug, Error, PartialEq)]
-#[error("Root is required")]
-pub struct RootRequired;
+/// Errors returned by [`IsRoot::is_root`].
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+pub enum IsRootError {
+    /// The process isn't running as root.
+    #[error("Root is required")]
+    NotRoot,
+}
 
 #[cfg(test)]
 mod tests {
@@ -42,6 +45,6 @@ mod tests {
         let output = adapter.is_root();
         // Assert
         let report = output.expect_err("should not be root");
-        assert_eq!(report.current_context(), &RootRequired);
+        assert_eq!(report.current_context(), &IsRootError::NotRoot);
     }
 }

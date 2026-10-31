@@ -31,11 +31,14 @@ impl AddKey for CryptsetupAdapter {
             .write_to_stdin(&input)
             .wait_with_output()
             .expect("should be able to wait on `cryptsetup luksAddKey`")
-            .ok_or(AddKeyError)
+            .ok_or(AddKeyError::Failed)
     }
 }
 
-/// Error returned by [`AddKey::add_key`].
+/// Errors returned by [`AddKey::add_key`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Failed to add LUKS key")]
-pub struct AddKeyError;
+pub enum AddKeyError {
+    /// `cryptsetup luksAddKey` exited with an error.
+    #[error("Failed to add LUKS key")]
+    Failed,
+}

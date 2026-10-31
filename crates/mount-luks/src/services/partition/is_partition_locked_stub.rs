@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-/// [`IsPartitionLocked`] returning a fixed result or [`PartitionUnlocked`].
+/// [`IsPartitionLocked`] returning a fixed result or [`IsPartitionLockedError`].
 pub struct IsPartitionLockedStub {
     /// Value returned by [`IsPartitionLocked::is_partition_locked`].
-    pub result: Result<(), PartitionUnlocked>,
+    pub result: Result<(), IsPartitionLockedError>,
 }
 
 impl FromServices for IsPartitionLockedStub {
@@ -17,7 +17,7 @@ impl FromServices for IsPartitionLockedStub {
 }
 
 impl IsPartitionLocked for IsPartitionLockedStub {
-    fn is_partition_locked(&self) -> Result<(), Report<PartitionUnlocked>> {
+    fn is_partition_locked(&self) -> Result<(), Report<IsPartitionLockedError>> {
         self.result.map_err(Report::new)
     }
 }

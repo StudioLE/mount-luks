@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-/// [`FindMount`] returning a fixed result or [`AlreadyMounted`].
+/// [`FindMount`] returning a fixed result or [`FindMountError`].
 pub struct FindMountStub {
     /// Value returned by [`FindMount::check_not_mounted`].
-    pub result: Result<(), AlreadyMounted>,
+    pub result: Result<(), FindMountError>,
 }
 
 impl FromServices for FindMountStub {
@@ -17,7 +17,7 @@ impl FromServices for FindMountStub {
 }
 
 impl FindMount for FindMountStub {
-    fn check_not_mounted(&self, _mount_path: &Path) -> Result<(), Report<AlreadyMounted>> {
+    fn check_not_mounted(&self, _mount_path: &Path) -> Result<(), Report<FindMountError>> {
         self.result.map_err(Report::new)
     }
 }

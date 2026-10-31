@@ -16,7 +16,7 @@ impl GetHandles for Tpm2Adapter {
             .expect("should be able to execute `tpm2_getcap`")
             .to_response();
         if !response.status.success() {
-            return Err(Report::new(GetHandlesError).attach_response(response));
+            return Err(Report::new(GetHandlesError::Failed).attach_response(response));
         }
         let stdout = response.output.unwrap_or_default();
         let handles = stdout
@@ -29,7 +29,10 @@ impl GetHandles for Tpm2Adapter {
     }
 }
 
-/// Error returned by [`GetHandles::get_handles`].
+/// Errors returned by [`GetHandles::get_handles`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-#[error("Unable to get persistent TPM handles")]
-pub struct GetHandlesError;
+pub enum GetHandlesError {
+    /// `tpm2_getcap` exited with an error.
+    #[error("Unable to get persistent TPM handles")]
+    Failed,
+}

@@ -31,10 +31,11 @@ impl SubcommandHandler {
     pub fn run(&self) -> Result<(), StructuredError> {
         let command = self.cli.command.unwrap_or_default();
         match command {
-            Subcommand::Mount => self.mount.execute(),
-            Subcommand::Validate => self.validate.execute(),
-            Subcommand::SetTpm => self.set_tpm.execute(),
-            Subcommand::SetLuks => self.set_luks.execute(),
+            Subcommand::Mount => self.mount.execute()?,
+            Subcommand::Validate => self.validate.execute()?,
+            Subcommand::SetTpm => self.set_tpm.execute()?,
+            Subcommand::SetLuks => self.set_luks.execute()?,
         }
+        Ok(())
     }
 }
