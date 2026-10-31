@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 /// [`MountPartition`] returning a fixed result or [`MountPartitionError`].
 pub struct MountPartitionStub {
-    /// Value returned by [`MountPartition::mount`].
+    /// Value returned by [`MountPartition::mount_partition`].
     pub result: Result<(), MountPartitionError>,
 }
 
@@ -17,7 +17,11 @@ impl FromServices for MountPartitionStub {
 }
 
 impl MountPartition for MountPartitionStub {
-    fn mount(&self, _device: &Path, _mount_path: &Path) -> Result<(), Report<MountPartitionError>> {
+    fn mount_partition(
+        &self,
+        _device: &Path,
+        _mount_path: &Path,
+    ) -> Result<(), Report<MountPartitionError>> {
         self.result.map_err(Report::new)
     }
 }

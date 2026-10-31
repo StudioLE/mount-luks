@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 /// Adapter resolving a PARTUUID to a device path via `blkid`.
 #[derive(FromServices)]
-pub struct ResolvePartitionAdapter {
+pub struct BlkidAdapter {
     /// Configuration options containing the PARTUUID.
     options: Arc<Options>,
 }
@@ -15,7 +15,7 @@ pub trait ResolvePartition: Send + Sync {
     fn resolve_partition(&self) -> Result<PathBuf, Report<ResolvePartitionError>>;
 }
 
-impl ResolvePartition for ResolvePartitionAdapter {
+impl ResolvePartition for BlkidAdapter {
     fn resolve_partition(&self) -> Result<PathBuf, Report<ResolvePartitionError>> {
         let token = format!("PARTUUID={}", self.options.partuuid);
         let response = Command::new("blkid")

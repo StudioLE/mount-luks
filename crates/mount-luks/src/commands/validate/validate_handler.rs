@@ -8,7 +8,7 @@ const TOTAL_STEPS: usize = 4;
 #[derive(FromServices)]
 pub struct ValidateHandler {
     /// Adapter for checking root privileges.
-    is_root: Arc<dyn IsRoot>,
+    check_root: Arc<dyn CheckRoot>,
     /// Adapter for resolving PARTUUID to a device path.
     resolve_partition: Arc<dyn ResolvePartition>,
     /// Adapter for checking if a key is valid for a LUKS partition.
@@ -23,8 +23,8 @@ impl ValidateHandler {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root
-            .is_root()
+        self.check_root
+            .check_root()
             .change_context(ValidateError::CheckRoot)?;
         progress.ok("Access granted");
 
@@ -36,7 +36,10 @@ impl ValidateHandler {
         progress.ok(&format!("Resolved to {}", partition.display()));
 
         progress.step("Getting key");
-        let key = self.get_key.get().change_context(ValidateError::GetKey)?;
+        let key = self
+            .get_key
+            .get_key()
+            .change_context(ValidateError::GetKey)?;
         progress.ok("Key retrieved");
 
         progress.step("Validating key against partition");

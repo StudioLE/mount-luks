@@ -10,15 +10,15 @@ pub struct MountHandler {
     /// Configuration options for the mount operation.
     options: Arc<Options>,
     /// Adapter for checking root privileges.
-    is_root: Arc<dyn IsRoot>,
+    check_root: Arc<dyn CheckRoot>,
     /// Adapter for checking if a partition is LUKS encrypted.
-    is_luks: Arc<dyn IsLuks>,
+    check_luks: Arc<dyn CheckLuks>,
     /// Adapter for unlocking a LUKS partition.
     unlock: Arc<dyn Unlock>,
     /// Adapter for checking if a path is already mounted.
-    find_mount: Arc<dyn FindMount>,
+    check_not_mounted: Arc<dyn CheckNotMounted>,
     /// Adapter for mounting a partition.
-    mount: Arc<dyn MountPartition>,
+    mount_partition: Arc<dyn MountPartition>,
     /// Adapter for retrieving the composite key.
     get_key: Arc<dyn GetKey>,
     /// Adapter for resolving PARTUUID to a device path.
@@ -26,7 +26,7 @@ pub struct MountHandler {
     /// Adapter for checking mount point existence.
     check_mount: Arc<dyn CheckMountExists>,
     /// Adapter for checking if the partition is locked.
-    is_locked: Arc<dyn IsPartitionLocked>,
+    check_partition_locked: Arc<dyn CheckPartitionLocked>,
 }
 
 impl MountHandler {
@@ -35,8 +35,8 @@ impl MountHandler {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root
-            .is_root()
+        self.check_root
+            .check_root()
             .change_context(MountError::CheckRoot)?;
         progress.ok("Access granted");
 
@@ -48,19 +48,19 @@ impl MountHandler {
         progress.ok(&format!("Resolved to {}", partition.display()));
 
         progress.step("Checking if partition is encrypted with LUKS");
-        self.is_luks
-            .is_luks(&partition)
+        self.check_luks
+            .check_luks(&partition)
             .change_context(MountError::CheckLuks)?;
         progress.ok("Partition is encrypted with LUKS");
 
         progress.step("Checking if partition is already unlocked");
-        self.is_locked
-            .is_partition_locked()
+        self.check_partition_locked
+            .check_partition_locked()
             .change_context(MountError::CheckLocked)?;
         progress.ok("Partition is locked");
 
         progress.step("Unlocking LUKS partition");
-        let key = self.get_key.get().change_context(MountError::GetKey)?;
+        let key = self.get_key.get_key().change_context(MountError::GetKey)?;
         self.unlock
             .unlock(&partition, &self.options.mapper_name, &key)
             .change_context(MountError::Unlock)?;
@@ -73,15 +73,15 @@ impl MountHandler {
         progress.ok("Mount point exists");
 
         progress.step("Checking if already mounted");
-        self.find_mount
+        self.check_not_mounted
             .check_not_mounted(&self.options.mount_path)
             .change_context(MountError::CheckMounted)?;
         progress.ok("Partition is not mounted");
 
         progress.step("Mounting partition");
         let mapper_path = self.options.get_mapper_path();
-        self.mount
-            .mount(&mapper_path, &self.options.mount_path)
+        self.mount_partition
+            .mount_partition(&mapper_path, &self.options.mount_path)
             .change_context(MountError::Mount)?;
         progress.ok("Partition mounted successfully");
 
@@ -143,8 +143,8 @@ mod tests {
         // Arrange
         let services = ServiceBuilder::new()
             .with_test_services()
-            .with_instance(IsLuksStub {
-                result: Err(IsLuksError::NotLuks),
+            .with_instance(CheckLuksStub {
+                result: Err(CheckLuksError::NotLuks),
             })
             .build();
         let handler = services.expect::<MountHandler>();
@@ -161,8 +161,8 @@ mod tests {
         // Arrange
         let services = ServiceBuilder::new()
             .with_test_services()
-            .with_instance(FindMountStub {
-                result: Err(FindMountError::AlreadyMounted),
+            .with_instance(CheckNotMountedStub {
+                result: Err(CheckNotMountedError::AlreadyMounted),
             })
             .build();
         let handler = services.expect::<MountHandler>();

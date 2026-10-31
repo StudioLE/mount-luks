@@ -8,9 +8,9 @@ const TOTAL_STEPS: usize = 6;
 #[derive(FromServices)]
 pub struct SetLuksHandler {
     /// Adapter for checking root privileges.
-    is_root: Arc<dyn IsRoot>,
+    check_root: Arc<dyn CheckRoot>,
     /// Adapter for checking if a partition is LUKS encrypted.
-    is_luks: Arc<dyn IsLuks>,
+    check_luks: Arc<dyn CheckLuks>,
     /// Adapter for checking if a key is valid for a LUKS partition.
     check_key: Arc<dyn CheckKey>,
     /// Adapter for adding a key to a LUKS partition.
@@ -29,8 +29,8 @@ impl SetLuksHandler {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root
-            .is_root()
+        self.check_root
+            .check_root()
             .change_context(SetLuksError::CheckRoot)?;
         progress.ok("Access granted");
 
@@ -42,13 +42,16 @@ impl SetLuksHandler {
         progress.ok(&format!("Resolved to {}", partition.display()));
 
         progress.step("Checking if partition is encrypted with LUKS");
-        self.is_luks
-            .is_luks(&partition)
+        self.check_luks
+            .check_luks(&partition)
             .change_context(SetLuksError::CheckLuks)?;
         progress.ok("Partition is encrypted with LUKS");
 
         progress.step("Getting new key");
-        let new_key = self.get_key.get().change_context(SetLuksError::GetKey)?;
+        let new_key = self
+            .get_key
+            .get_key()
+            .change_context(SetLuksError::GetKey)?;
         progress.ok("New key retrieved");
 
         progress.step("Checking if key already exists");
@@ -64,7 +67,7 @@ impl SetLuksHandler {
         progress.step("Adding new key to partition");
         let existing_passphrase = self
             .prompt
-            .prompt("Enter existing passphrase: ")
+            .prompt_password("Enter existing passphrase: ")
             .change_context(SetLuksError::Prompt)?;
         self.add_key
             .add_key(&partition, existing_passphrase.trim(), &new_key)
@@ -162,8 +165,8 @@ mod tests {
         // Arrange
         let services = ServiceBuilder::new()
             .with_test_services()
-            .with_instance(IsLuksStub {
-                result: Err(IsLuksError::NotLuks),
+            .with_instance(CheckLuksStub {
+                result: Err(CheckLuksError::NotLuks),
             })
             .build();
         let handler = services.expect::<SetLuksHandler>();

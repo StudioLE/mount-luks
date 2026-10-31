@@ -5,7 +5,11 @@ use crate::prelude::*;
 /// Mount a partition.
 pub trait MountPartition: Send + Sync {
     /// Mount a device at the given path.
-    fn mount(&self, device: &Path, mount_path: &Path) -> Result<(), Report<MountPartitionError>>;
+    fn mount_partition(
+        &self,
+        device: &Path,
+        mount_path: &Path,
+    ) -> Result<(), Report<MountPartitionError>>;
 }
 
 /// Adapter wrapping the `mount` CLI tool.
@@ -13,7 +17,11 @@ pub trait MountPartition: Send + Sync {
 pub struct MountAdapter;
 
 impl MountPartition for MountAdapter {
-    fn mount(&self, device: &Path, mount_path: &Path) -> Result<(), Report<MountPartitionError>> {
+    fn mount_partition(
+        &self,
+        device: &Path,
+        mount_path: &Path,
+    ) -> Result<(), Report<MountPartitionError>> {
         Command::new("mount")
             .arg(device)
             .arg(mount_path)
@@ -23,7 +31,7 @@ impl MountPartition for MountAdapter {
     }
 }
 
-/// Errors returned by [`MountPartition::mount`].
+/// Errors returned by [`MountPartition::mount_partition`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum MountPartitionError {
     /// Unable to start `mount` or exchange data with it.

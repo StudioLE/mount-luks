@@ -3,9 +3,9 @@
 mod check_mount_exists;
 #[cfg(test)]
 mod check_mount_exists_stub;
-mod find_mount;
+mod check_not_mounted;
 #[cfg(test)]
-mod find_mount_stub;
+mod check_not_mounted_stub;
 mod mount_partition;
 #[cfg(test)]
 mod mount_partition_stub;
@@ -13,9 +13,9 @@ mod mount_partition_stub;
 pub use check_mount_exists::*;
 #[cfg(test)]
 pub use check_mount_exists_stub::*;
-pub use find_mount::*;
+pub use check_not_mounted::*;
 #[cfg(test)]
-pub use find_mount_stub::*;
+pub use check_not_mounted_stub::*;
 pub use mount_partition::*;
 #[cfg(test)]
 pub use mount_partition_stub::*;

@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 /// Check that the partition is not already unlocked.
-pub trait IsPartitionLocked: Send + Sync {
+pub trait CheckPartitionLocked: Send + Sync {
     /// Return `Ok(())` if the partition is locked, or an error if already unlocked.
-    fn is_partition_locked(&self) -> Result<(), Report<IsPartitionLockedError>>;
+    fn check_partition_locked(&self) -> Result<(), Report<CheckPartitionLockedError>>;
 }
 
 /// Adapter that checks the real filesystem for mapper device existence.
@@ -15,11 +15,11 @@ pub struct PartitionLockedAdapter {
     options: Arc<Options>,
 }
 
-impl IsPartitionLocked for PartitionLockedAdapter {
-    fn is_partition_locked(&self) -> Result<(), Report<IsPartitionLockedError>> {
+impl CheckPartitionLocked for PartitionLockedAdapter {
+    fn check_partition_locked(&self) -> Result<(), Report<CheckPartitionLockedError>> {
         let mapper_path = self.options.get_mapper_path();
         if mapper_path.exists() {
-            let report = Report::new(IsPartitionLockedError::Unlocked).attach_path(&mapper_path);
+            let report = Report::new(CheckPartitionLockedError::Unlocked).attach_path(&mapper_path);
             Err(report)
         } else {
             Ok(())
@@ -27,9 +27,9 @@ impl IsPartitionLocked for PartitionLockedAdapter {
     }
 }
 
-/// Errors returned by [`IsPartitionLocked`].
+/// Errors returned by [`CheckPartitionLocked`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-pub enum IsPartitionLockedError {
+pub enum CheckPartitionLockedError {
     /// The mapper device already exists.
     #[error("Partition is already unlocked")]
     Unlocked,

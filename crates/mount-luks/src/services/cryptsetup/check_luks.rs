@@ -1,32 +1,32 @@
 use crate::prelude::*;
 
 /// Check if a partition is encrypted with LUKS.
-pub trait IsLuks: Send + Sync {
+pub trait CheckLuks: Send + Sync {
     /// Check if a partition is LUKS encrypted.
-    fn is_luks(&self, partition: &Path) -> Result<(), Report<IsLuksError>>;
+    fn check_luks(&self, partition: &Path) -> Result<(), Report<CheckLuksError>>;
 }
 
-impl IsLuks for CryptsetupAdapter {
-    fn is_luks(&self, partition: &Path) -> Result<(), Report<IsLuksError>> {
+impl CheckLuks for CryptsetupAdapter {
+    fn check_luks(&self, partition: &Path) -> Result<(), Report<CheckLuksError>> {
         let response = Command::new("cryptsetup")
             .arg("isLuks")
             .arg(partition)
             .output()
-            .change_context(IsLuksError::Run)?
+            .change_context(CheckLuksError::Run)?
             .to_response();
         if response.status.success() {
             return Ok(());
         }
         if response.output.is_none() && response.error.is_none() {
-            return Err(Report::new(IsLuksError::NotLuks));
+            return Err(Report::new(CheckLuksError::NotLuks));
         }
-        Err(Report::new(IsLuksError::Unexpected).attach_response(response))
+        Err(Report::new(CheckLuksError::Unexpected).attach_response(response))
     }
 }
 
-/// Errors returned by [`IsLuks::is_luks`].
+/// Errors returned by [`CheckLuks::check_luks`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-pub enum IsLuksError {
+pub enum CheckLuksError {
     /// Unable to start `cryptsetup isLuks` or exchange data with it.
     #[error("Unable to run `cryptsetup isLuks`")]
     Run,

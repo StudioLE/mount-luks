@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 /// [`PromptPassword`] returning a fixed [`String`] or [`PromptPasswordError`].
 pub struct PromptPasswordStub {
-    /// Value returned by [`PromptPassword::prompt`].
+    /// Value returned by [`PromptPassword::prompt_password`].
     pub password: Result<String, PromptPasswordError>,
 }
 
@@ -19,7 +19,7 @@ impl FromServices for PromptPasswordStub {
 }
 
 impl PromptPassword for PromptPasswordStub {
-    fn prompt(&self, _message: &str) -> Result<String, Report<PromptPasswordError>> {
+    fn prompt_password(&self, _message: &str) -> Result<String, Report<PromptPasswordError>> {
         self.password.clone().map_err(Report::new)
     }
 }

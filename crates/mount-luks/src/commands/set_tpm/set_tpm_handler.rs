@@ -10,7 +10,7 @@ pub struct SetTpmHandler {
     /// Configuration options for the set-tpm operation.
     options: Arc<Options>,
     /// Adapter for checking root privileges.
-    is_root: Arc<dyn IsRoot>,
+    check_root: Arc<dyn CheckRoot>,
     /// Adapter for listing persistent TPM handles.
     get_handles: Arc<dyn GetHandles>,
     /// Adapter for creating a TPM PCR policy.
@@ -33,8 +33,8 @@ impl SetTpmHandler {
         let mut progress = Progress::new(TOTAL_STEPS);
 
         progress.step("Checking if root");
-        self.is_root
-            .is_root()
+        self.check_root
+            .check_root()
             .change_context(SetTpmError::CheckRoot)?;
         progress.ok("Access granted");
 
@@ -68,7 +68,7 @@ impl SetTpmHandler {
         progress.step("Getting key to seal");
         let key = self
             .prompt
-            .prompt("Enter key to seal into TPM: ")
+            .prompt_password("Enter key to seal into TPM: ")
             .change_context(SetTpmError::Prompt)?;
         progress.ok("Key retrieved");
 

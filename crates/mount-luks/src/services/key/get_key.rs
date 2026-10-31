@@ -6,12 +6,12 @@ use std::fs::read_to_string;
 /// Retrieve the composite key from all configured sources.
 pub trait GetKey: Send + Sync {
     /// Get the key by concatenating all sources of key material.
-    fn get(&self) -> Result<String, Report<GetKeyError>>;
+    fn get_key(&self) -> Result<String, Report<GetKeyError>>;
 }
 
 /// [`GetKey`] adapter that reads from file, TPM, and interactive prompt.
 #[derive(FromServices)]
-pub struct GetKeyAdapter {
+pub struct KeyProvider {
     /// Configuration options.
     options: Arc<Options>,
     /// Adapter for unsealing TPM objects with retry.
@@ -20,8 +20,8 @@ pub struct GetKeyAdapter {
     prompt: Arc<dyn PromptPassword>,
 }
 
-impl GetKey for GetKeyAdapter {
-    fn get(&self) -> Result<String, Report<GetKeyError>> {
+impl GetKey for KeyProvider {
+    fn get_key(&self) -> Result<String, Report<GetKeyError>> {
         let mut components = Vec::new();
         if let Some(path) = &self.options.key_path {
             trace!(path = %path.display(), "Reading key from file");
@@ -51,7 +51,7 @@ impl GetKey for GetKeyAdapter {
             trace!("Reading key from prompt");
             let key = self
                 .prompt
-                .prompt("Enter interactive key component: ")
+                .prompt_password("Enter interactive key component: ")
                 .change_context(GetKeyError::Prompt)?
                 .trim()
                 .to_owned();
@@ -67,7 +67,7 @@ impl GetKey for GetKeyAdapter {
     }
 }
 
-/// Errors returned by [`GetKey::get`].
+/// Errors returned by [`GetKey::get_key`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum GetKeyError {
     /// Unable to read key file.
@@ -89,7 +89,7 @@ mod tests {
     use super::*;
     use std::fs;
 
-    /// [`GetKeyAdapter::get`] with only a key file.
+    /// [`KeyProvider::get_key`] with only a key file.
     #[test]
     fn get_key_adapter_get_key_file() {
         // Arrange
@@ -105,14 +105,14 @@ mod tests {
                 ..Options::fixture_without_key_sources()
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::from("file-key")));
     }
 
-    /// [`GetKeyAdapter::get`] with only the TPM.
+    /// [`KeyProvider::get_key`] with only the TPM.
     #[test]
     fn get_key_adapter_get_tpm() {
         // Arrange
@@ -123,14 +123,14 @@ mod tests {
                 ..Options::fixture_without_key_sources()
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::from("fixture-tpm-key")));
     }
 
-    /// [`GetKeyAdapter::get`] with only the prompt.
+    /// [`KeyProvider::get_key`] with only the prompt.
     #[test]
     fn get_key_adapter_get_prompt() {
         // Arrange
@@ -141,14 +141,14 @@ mod tests {
                 ..Options::fixture_without_key_sources()
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::from("fixture-password")));
     }
 
-    /// [`GetKeyAdapter::get`] with a key file, the TPM, and the prompt.
+    /// [`KeyProvider::get_key`] with a key file, the TPM, and the prompt.
     #[test]
     fn get_key_adapter_get_all_sources() {
         // Arrange
@@ -170,14 +170,14 @@ mod tests {
                 password: Ok(String::from("prompt")),
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::from("filetpmprompt")));
     }
 
-    /// [`GetKeyAdapter::get`] with no key sources.
+    /// [`KeyProvider::get_key`] with no key sources.
     #[test]
     fn get_key_adapter_get_no_sources() {
         // Arrange
@@ -185,15 +185,15 @@ mod tests {
             .with_test_services()
             .with_instance(Options::fixture_without_key_sources())
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         let report = output.expect_err("should not be able to get a key without sources");
         assert_eq!(report.current_context(), &GetKeyError::Required);
     }
 
-    /// [`GetKeyAdapter::get`] with an empty key file.
+    /// [`KeyProvider::get_key`] with an empty key file.
     #[test]
     fn get_key_adapter_get_empty_key_file() {
         // Arrange
@@ -209,14 +209,14 @@ mod tests {
                 ..Options::fixture_without_key_sources()
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::new()));
     }
 
-    /// [`GetKeyAdapter::get`] with an empty TPM value.
+    /// [`KeyProvider::get_key`] with an empty TPM value.
     #[test]
     fn get_key_adapter_get_empty_tpm() {
         // Arrange
@@ -230,14 +230,14 @@ mod tests {
                 key: Ok(String::new()),
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::new()));
     }
 
-    /// [`GetKeyAdapter::get`] with a prompt value of only whitespace.
+    /// [`KeyProvider::get_key`] with a prompt value of only whitespace.
     #[test]
     fn get_key_adapter_get_empty_prompt() {
         // Arrange
@@ -251,14 +251,14 @@ mod tests {
                 password: Ok(String::from("   ")),
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         assert_eq!(output.ok(), Some(String::new()));
     }
 
-    /// [`GetKeyAdapter::get`] with a key file that doesn't exist.
+    /// [`KeyProvider::get_key`] with a key file that doesn't exist.
     #[test]
     fn get_key_adapter_get_missing_key_file() {
         // Arrange
@@ -269,15 +269,15 @@ mod tests {
                 ..Options::fixture_without_key_sources()
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         let report = output.expect_err("should not be able to read a missing key file");
         assert_eq!(report.current_context(), &GetKeyError::KeyFile);
     }
 
-    /// [`GetKeyAdapter::get`] when the TPM can't unseal.
+    /// [`KeyProvider::get_key`] when the TPM can't unseal.
     #[test]
     fn get_key_adapter_get_unseal_error() {
         // Arrange
@@ -291,15 +291,15 @@ mod tests {
                 key: Err(UnsealError::Failed),
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         let report = output.expect_err("should not be able to get a key when unseal fails");
         assert_eq!(report.current_context(), &GetKeyError::Tpm);
     }
 
-    /// [`GetKeyAdapter::get`] when the prompt can't be read.
+    /// [`KeyProvider::get_key`] when the prompt can't be read.
     #[test]
     fn get_key_adapter_get_prompt_error() {
         // Arrange
@@ -313,9 +313,9 @@ mod tests {
                 password: Err(PromptPasswordError::Read),
             })
             .build();
-        let adapter = services.expect::<GetKeyAdapter>();
+        let provider = services.expect::<KeyProvider>();
         // Act
-        let output = adapter.get();
+        let output = provider.get_key();
         // Assert
         let report = output.expect_err("should not be able to get a key when the prompt fails");
         assert_eq!(report.current_context(), &GetKeyError::Prompt);
