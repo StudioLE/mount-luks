@@ -1,8 +1,8 @@
 //! Constants and paths for TPM 2.0 operations.
 
 use crate::prelude::*;
-use std::env::temp_dir;
-use std::fs::create_dir;
+use std::env;
+use std::fs;
 use std::sync::LazyLock;
 
 /// PCR bank algorithm
@@ -47,9 +47,9 @@ pub const HASH_ALGORITHM: &str = "sha256";
 ///
 /// The directory is created if it does not already exist.
 static TEMP_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    let dir = temp_dir().join(APP_NAME);
+    let dir = env::temp_dir().join(APP_NAME);
     if !dir.exists() {
-        create_dir(&dir).expect("should be able to create temp dir");
+        fs::create_dir(&dir).expect("should be able to create temp dir");
     }
     dir
 });

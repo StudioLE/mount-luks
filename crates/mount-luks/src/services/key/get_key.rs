@@ -1,7 +1,7 @@
 //! Adapter for retrieving a key by concatenating all configured sources.
 
 use crate::prelude::*;
-use std::fs::read_to_string;
+use std::fs;
 
 /// Retrieve the composite key from all configured sources.
 pub trait GetKey: Send + Sync {
@@ -25,7 +25,7 @@ impl GetKey for KeyProvider {
         let mut components = Vec::new();
         if let Some(path) = &self.options.key_path {
             trace!(path = %path.display(), "Reading key from file");
-            let key = read_to_string(path)
+            let key = fs::read_to_string(path)
                 .change_context(GetKeyError::KeyFile)
                 .attach_path(path)?
                 .trim()

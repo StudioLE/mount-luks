@@ -1,7 +1,6 @@
 use crate::prelude::*;
-use dirs::config_dir;
 use serde::Deserialize;
-use std::fs::{File, read_dir};
+use std::fs::{self, File};
 
 /// LUKS partition configuration loaded from YAML.
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -119,10 +118,10 @@ fn get_config_path() -> Result<PathBuf, Report<OptionsError>> {
 }
 
 fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
-    let dir = config_dir()
+    let dir = dirs::config_dir()
         .ok_or_else(|| Report::new(OptionsError::ConfigDir))?
         .join(APP_NAME);
-    let paths = read_dir(&dir)
+    let paths = fs::read_dir(&dir)
         .change_context(OptionsError::ReadDir)
         .attach_path(&dir)?
         .filter_map(Result::ok)
@@ -167,7 +166,6 @@ pub enum OptionsError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::write;
 
     #[test]
     fn options_from_file() {
@@ -180,7 +178,7 @@ mod tests {
             let path = dir.join(format!("config{i}.yaml"));
             let content =
                 format!("partuuid: uuid-{i}\nmapper_name: test-{i}\nmount_path: /mnt/test{i}\n");
-            write(&path, content).expect("should write config file");
+            fs::write(&path, content).expect("should write config file");
             paths.push(path);
         }
         let target_path = paths.get(1).expect("should have path at index 1").clone();

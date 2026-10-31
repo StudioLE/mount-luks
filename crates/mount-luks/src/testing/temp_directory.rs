@@ -4,9 +4,9 @@
 )]
 use crate::prelude::*;
 use chrono::Local;
-use std::env::temp_dir;
-use std::fs::create_dir_all;
-use std::thread::current as current_thread;
+use std::env;
+use std::fs;
+use std::thread;
 
 /// Builder for a temporary directory path used in tests.
 pub struct TempDirectory {
@@ -17,7 +17,9 @@ impl TempDirectory {
     /// Create a new [`TempDirectory`] rooted at the system temp directory.
     #[must_use]
     pub fn new() -> TempDirectory {
-        Self { path: temp_dir() }
+        Self {
+            path: env::temp_dir(),
+        }
     }
 
     /// Append the application name as a path component.
@@ -52,7 +54,7 @@ impl TempDirectory {
     /// # Errors
     /// - If the directory or any of its parents cannot be created
     pub fn create(self) -> Result<PathBuf, Report<TempDirectoryError>> {
-        create_dir_all(&self.path)
+        fs::create_dir_all(&self.path)
             .change_context(TempDirectoryError::Create)
             .attach_path(&self.path)?;
         Ok(self.path)
@@ -70,7 +72,7 @@ fn get_datetime() -> String {
 }
 
 fn get_test_name_underscored() -> String {
-    current_thread()
+    thread::current()
         .name()
         .expect("should be able to get test name")
         .replace(':', "_")

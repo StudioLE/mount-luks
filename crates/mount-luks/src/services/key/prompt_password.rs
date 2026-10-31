@@ -1,7 +1,6 @@
 //! Adapter for interactive password prompts.
 
 use crate::prelude::*;
-use rpassword::prompt_password;
 
 /// Prompt the user for a password.
 pub trait PromptPassword: Send + Sync {
@@ -15,7 +14,7 @@ pub struct RpasswordAdapter;
 
 impl PromptPassword for RpasswordAdapter {
     fn prompt_password(&self, message: &str) -> Result<String, Report<PromptPasswordError>> {
-        prompt_password(message).change_context(PromptPasswordError::Read)
+        rpassword::prompt_password(message).change_context(PromptPasswordError::Read)
     }
 }
 

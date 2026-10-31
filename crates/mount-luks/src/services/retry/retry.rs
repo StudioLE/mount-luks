@@ -1,8 +1,8 @@
 //! Repeat an operation after retryable failures.
 
 use crate::prelude::*;
-use std::any::type_name;
-use std::thread::sleep;
+use std::any;
+use std::thread;
 
 /// Repeat a [`Attempt`] operation with exponential backoff.
 ///
@@ -27,7 +27,7 @@ impl<T: ?Sized + Attempt> Retry<T> {
     /// - Fails with the last error once it is not retryable or no attempts remain
     /// - Attaches `attempts` and `is_retryable`
     pub fn execute(&self, input: T::Input) -> Result<T::Output, Report<T::Error>> {
-        let operation = type_name::<T>();
+        let operation = any::type_name::<T>();
         let options = self.inner.options();
         let max_attempts = options.max_attempts.max(1);
         let mut attempt = 0;
@@ -56,7 +56,7 @@ impl<T: ?Sized + Attempt> Retry<T> {
                 error = %report.current_context(),
                 "Retrying"
             );
-            sleep(delay);
+            thread::sleep(delay);
         }
     }
 }

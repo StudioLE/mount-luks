@@ -90,7 +90,7 @@ impl TryFrom<String> for PersistentHandle {
     type Error = PersistentHandleError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.parse()
+        Self::from_str(&value)
     }
 }
 
@@ -98,7 +98,7 @@ impl TryFrom<&str> for PersistentHandle {
     type Error = PersistentHandleError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        value.parse()
+        Self::from_str(value)
     }
 }
 
@@ -117,7 +117,7 @@ impl<'de> Deserialize<'de> for PersistentHandle {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        s.parse().map_err(DeError::custom)
+        Self::from_str(&s).map_err(DeError::custom)
     }
 }
 
