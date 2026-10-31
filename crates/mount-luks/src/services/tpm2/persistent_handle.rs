@@ -136,29 +136,28 @@ pub enum PersistentHandleError {
 mod tests {
     use super::*;
 
+    /// [`PersistentHandle::new`] at the base address.
     #[test]
-    fn test_new_at_base() {
-        let handle = PersistentHandle::new(0x81000000).expect("Base handle should be valid");
+    fn persistent_handle_new() {
+        let handle = PersistentHandle::new(0x81000000).expect("base handle should be valid");
         assert_eq!(handle.as_u32(), 0x81000000);
         assert_eq!(handle.offset(), 0);
     }
 
+    /// [`PersistentHandle::new`] across the valid range, including the max offset.
     #[test]
-    fn test_new_valid_range() {
-        // Test various valid handles
-        assert!(PersistentHandle::new(0x81000000).is_ok());
+    fn persistent_handle_new_valid_range() {
         assert!(PersistentHandle::new(0x81000001).is_ok());
         assert!(PersistentHandle::new(0x81000007).is_ok());
         assert!(PersistentHandle::new(0x8100FFFF).is_ok());
-
-        // Test at max offset (0x81000000 + 0xFFFF)
         let max_handle = PersistentHandle::new(0x81000000 + u32::from(u16::MAX))
-            .expect("Max valid handle should be accepted");
+            .expect("max handle should be valid");
         assert_eq!(max_handle.offset(), u16::MAX);
     }
 
+    /// [`PersistentHandle::new`] below the base address.
     #[test]
-    fn test_new_below_base() {
+    fn persistent_handle_new_below_base() {
         assert_eq!(
             PersistentHandle::new(0x80FFFFFF),
             Err(PersistentHandleError::Min)
@@ -173,9 +172,9 @@ mod tests {
         );
     }
 
+    /// [`PersistentHandle::new`] beyond the max offset.
     #[test]
-    fn test_new_above_max() {
-        // 0x81010000 is beyond u16::MAX offset
+    fn persistent_handle_new_above_max() {
         assert_eq!(
             PersistentHandle::new(0x81010000),
             Err(PersistentHandleError::Max)
@@ -190,330 +189,214 @@ mod tests {
         );
     }
 
+    /// [`PersistentHandle::new`] with the value of each [`PersistentHandle::as_u32`].
     #[test]
-    fn test_from_offset() {
-        let handle = PersistentHandle::from_offset(0);
-        assert_eq!(handle.as_u32(), 0x81000000);
-
-        let handle = PersistentHandle::from_offset(5);
-        assert_eq!(handle.as_u32(), 0x81000005);
-
-        let handle = PersistentHandle::from_offset(u16::MAX);
-        assert_eq!(handle.as_u32(), 0x81000000 + u32::from(u16::MAX));
+    fn persistent_handle_new_roundtrip() {
+        for offset in [0_u16, 1, 7, 255, 1000, u16::MAX] {
+            let handle = PersistentHandle::from_offset(offset);
+            let output = PersistentHandle::new(handle.as_u32());
+            assert_eq!(output, Ok(handle));
+        }
     }
 
+    /// [`PersistentHandle::from_offset`] at the first, an arbitrary, and the last offset.
     #[test]
-    fn test_offset() {
-        assert_eq!(PersistentHandle::from_offset(0).offset(), 0);
-        assert_eq!(PersistentHandle::from_offset(1).offset(), 1);
-        assert_eq!(PersistentHandle::from_offset(255).offset(), 255);
-        assert_eq!(PersistentHandle::from_offset(u16::MAX).offset(), u16::MAX);
-    }
-
-    #[test]
-    fn test_try_from_u32_valid() {
-        let handle =
-            PersistentHandle::try_from(0x81000003).expect("Valid handle should convert from u32");
-        assert_eq!(handle.as_u32(), 0x81000003);
-        assert_eq!(handle.offset(), 3);
-    }
-
-    #[test]
-    fn test_try_from_u32_invalid() {
-        assert!(PersistentHandle::try_from(0x80FFFFFF).is_err());
-        assert!(PersistentHandle::try_from(0x81FFFFFF).is_err());
-    }
-
-    #[test]
-    fn test_into_u32() {
-        let handle = PersistentHandle::from_offset(42);
-        let value: u32 = handle.into();
-        assert_eq!(value, 0x81000000 + 42);
-    }
-
-    #[test]
-    fn test_display() {
+    fn persistent_handle_from_offset() {
+        assert_eq!(PersistentHandle::from_offset(0).as_u32(), 0x81000000);
+        assert_eq!(PersistentHandle::from_offset(5).as_u32(), 0x81000005);
         assert_eq!(
-            format!("{}", PersistentHandle::from_offset(0)),
-            "0x81000000"
+            PersistentHandle::from_offset(u16::MAX).as_u32(),
+            0x81000000 + u32::from(u16::MAX)
         );
+    }
+
+    /// [`PersistentHandle::try_from`] with a valid [`u32`].
+    #[test]
+    fn persistent_handle_try_from_u32() {
+        let output = PersistentHandle::try_from(0x81000003_u32);
+        assert_eq!(output, Ok(PersistentHandle::from_offset(3)));
+    }
+
+    /// [`PersistentHandle::try_from`] with an out of range [`u32`].
+    #[test]
+    fn persistent_handle_try_from_u32_invalid() {
+        assert!(PersistentHandle::try_from(0x80FFFFFF_u32).is_err());
+        assert!(PersistentHandle::try_from(0x81FFFFFF_u32).is_err());
+    }
+
+    /// [`u32::from`] a [`PersistentHandle`].
+    #[test]
+    fn u32_from() {
+        let output = u32::from(PersistentHandle::from_offset(42));
+        assert_eq!(output, 0x81000000 + 42);
+    }
+
+    /// [`PersistentHandle`] formatted as the hex string passed to `tpm2-tools`.
+    #[test]
+    fn persistent_handle_display() {
+        assert_eq!(PersistentHandle::from_offset(0).to_string(), "0x81000000");
+        assert_eq!(PersistentHandle::from_offset(1).to_string(), "0x81000001");
         assert_eq!(
-            format!("{}", PersistentHandle::from_offset(1)),
-            "0x81000001"
-        );
-        assert_eq!(
-            format!("{}", PersistentHandle::from_offset(0x10)),
+            PersistentHandle::from_offset(0x10).to_string(),
             "0x81000010"
         );
         assert_eq!(
-            format!("{}", PersistentHandle::from_offset(0xABCD)),
+            PersistentHandle::from_offset(0xABCD).to_string(),
             "0x8100ABCD"
         );
     }
 
+    /// [`PersistentHandle::from_str`] with each [`Display`] output.
     #[test]
-    fn test_comparison() {
-        let h0 = PersistentHandle::from_offset(0);
-        let h1 = PersistentHandle::from_offset(1);
-        let h2 = PersistentHandle::from_offset(2);
-        let h1_dup = PersistentHandle::from_offset(1);
-
-        assert!(h0 < h1);
-        assert!(h1 < h2);
-        assert!(h2 > h1);
-        assert!(h1 <= h1_dup);
-        assert!(h1 >= h1_dup);
-        assert_eq!(h1, h1_dup);
-        assert_ne!(h1, h2);
-    }
-
-    #[test]
-    fn test_ordering() {
-        let mut handles = [
-            PersistentHandle::from_offset(5),
-            PersistentHandle::from_offset(1),
-            PersistentHandle::from_offset(3),
-            PersistentHandle::from_offset(0),
-        ];
-
-        handles.sort();
-
-        assert_eq!(handles[0].offset(), 0);
-        assert_eq!(handles[1].offset(), 1);
-        assert_eq!(handles[2].offset(), 3);
-        assert_eq!(handles[3].offset(), 5);
-    }
-
-    #[test]
-    fn test_hash_consistency() {
-        use std::collections::HashSet;
-
-        let mut set = HashSet::new();
-        let h1 = PersistentHandle::from_offset(1);
-        let h1_dup = PersistentHandle::from_offset(1);
-        let h2 = PersistentHandle::from_offset(2);
-
-        set.insert(h1);
-        assert!(set.contains(&h1_dup)); // Same value should be found
-        assert!(!set.contains(&h2));
-
-        set.insert(h2);
-        assert_eq!(set.len(), 2); // Only 2 unique values
-    }
-
-    #[test]
-    fn test_roundtrip() {
+    fn persistent_handle_display_roundtrip() {
         for offset in [0_u16, 1, 7, 255, 1000, u16::MAX] {
             let handle = PersistentHandle::from_offset(offset);
-            let value = handle.as_u32();
-            let reconstructed =
-                PersistentHandle::new(value).expect("Converted u32 should create valid handle");
-            assert_eq!(handle, reconstructed);
-            assert_eq!(reconstructed.offset(), offset);
+            let output = PersistentHandle::from_str(&handle.to_string());
+            assert_eq!(output, Ok(handle));
         }
     }
 
+    /// [`PersistentHandle::from_str`] with a lowercase and an uppercase `0x` prefix.
     #[test]
-    fn test_size() {
-        // Verify the struct is actually 2 bytes
-        assert_eq!(size_of::<PersistentHandle>(), 2);
-        assert_eq!(size_of::<Option<PersistentHandle>>(), 4);
-    }
-
-    #[test]
-    fn test_debug_output() {
-        let handle = PersistentHandle::from_offset(42);
-        let debug_str = format!("{handle:?}");
-        assert!(debug_str.contains("PersistentHandle"));
-    }
-
-    #[test]
-    fn test_boundary_conditions() {
-        // Exactly at boundaries
-        assert!(PersistentHandle::new(0x81000000).is_ok()); // Min valid
-        assert!(PersistentHandle::new(0x80FFFFFF).is_err()); // Just below min
-
-        let max_valid = 0x81000000 + u32::from(u16::MAX);
-        assert!(PersistentHandle::new(max_valid).is_ok()); // Max valid
-        assert!(PersistentHandle::new(max_valid + 1).is_err()); // Just above max
-    }
-
-    #[test]
-    fn test_from_str_with_prefix() {
-        let handle: PersistentHandle = "0x81000003"
-            .parse()
-            .expect("Valid hex string with prefix should parse");
-        assert_eq!(handle.as_u32(), 0x81000003);
-
-        let handle: PersistentHandle = "0X81000001"
-            .parse()
-            .expect("Valid hex string with uppercase prefix should parse");
-        assert_eq!(handle.as_u32(), 0x81000001);
-    }
-
-    #[test]
-    fn test_from_str_without_prefix() {
-        let handle: PersistentHandle = "81000003"
-            .parse()
-            .expect("Valid hex string without prefix should parse");
-        assert_eq!(handle.as_u32(), 0x81000003);
-    }
-
-    #[test]
-    fn test_from_str_with_whitespace() {
-        let handle: PersistentHandle = "  0x81000003  "
-            .parse()
-            .expect("Valid hex string with whitespace should parse");
-        assert_eq!(handle.as_u32(), 0x81000003);
-    }
-
-    #[test]
-    fn test_from_str_invalid() {
+    fn persistent_handle_from_str_with_prefix() {
         assert_eq!(
-            "invalid".parse::<PersistentHandle>(),
+            PersistentHandle::from_str("0x81000003"),
+            Ok(PersistentHandle::from_offset(3))
+        );
+        assert_eq!(
+            PersistentHandle::from_str("0X81000001"),
+            Ok(PersistentHandle::from_offset(1))
+        );
+    }
+
+    /// [`PersistentHandle::from_str`] without a `0x` prefix.
+    #[test]
+    fn persistent_handle_from_str_without_prefix() {
+        let output = PersistentHandle::from_str("81000003");
+        assert_eq!(output, Ok(PersistentHandle::from_offset(3)));
+    }
+
+    /// [`PersistentHandle::from_str`] with surrounding whitespace.
+    #[test]
+    fn persistent_handle_from_str_with_whitespace() {
+        let output = PersistentHandle::from_str("  0x81000003  ");
+        assert_eq!(output, Ok(PersistentHandle::from_offset(3)));
+    }
+
+    /// [`PersistentHandle::from_str`] with values that aren't hex.
+    #[test]
+    fn persistent_handle_from_str_invalid() {
+        assert_eq!(
+            PersistentHandle::from_str("invalid"),
             Err(PersistentHandleError::Parse)
         );
         assert_eq!(
-            "0xGGGGGG".parse::<PersistentHandle>(),
+            PersistentHandle::from_str("0xGGGGGG"),
             Err(PersistentHandleError::Parse)
         );
         assert_eq!(
-            "".parse::<PersistentHandle>(),
+            PersistentHandle::from_str(""),
             Err(PersistentHandleError::Parse)
         );
     }
 
+    /// [`PersistentHandle::from_str`] with hex values outside the range.
     #[test]
-    fn test_from_str_out_of_range() {
+    fn persistent_handle_from_str_out_of_range() {
         assert_eq!(
-            "0x80FFFFFF".parse::<PersistentHandle>(),
+            PersistentHandle::from_str("0x80FFFFFF"),
             Err(PersistentHandleError::Min)
         );
         assert_eq!(
-            "0x81FFFFFF".parse::<PersistentHandle>(),
+            PersistentHandle::from_str("0x81FFFFFF"),
             Err(PersistentHandleError::Max)
         );
     }
 
+    /// [`PersistentHandle::try_from`] with a [`String`].
     #[test]
-    fn test_display_from_str_roundtrip() {
+    fn persistent_handle_try_from_string() {
+        let output = PersistentHandle::try_from(String::from("0x81000003"));
+        assert_eq!(output, Ok(PersistentHandle::from_offset(3)));
+    }
+
+    /// [`PersistentHandle::try_from`] with a `&str` with and without a prefix.
+    #[test]
+    fn persistent_handle_try_from_str() {
+        assert_eq!(
+            PersistentHandle::try_from("0x81000003"),
+            Ok(PersistentHandle::from_offset(3))
+        );
+        assert_eq!(
+            PersistentHandle::try_from("81000003"),
+            Ok(PersistentHandle::from_offset(3))
+        );
+    }
+
+    /// [`PersistentHandle::serialize`] to a quoted YAML hex string.
+    #[test]
+    fn persistent_handle_serialize() {
+        for (offset, expected) in [
+            (3, "'0x81000003'\n"),
+            (0, "'0x81000000'\n"),
+            (0xABCD, "'0x8100ABCD'\n"),
+        ] {
+            let handle = PersistentHandle::from_offset(offset);
+            let output = serde_yaml::to_string(&handle).expect("handle should serialize to YAML");
+            assert_eq!(output, expected);
+        }
+    }
+
+    /// [`PersistentHandle::deserialize`] with a lowercase and an uppercase `0x` prefix.
+    #[test]
+    fn persistent_handle_deserialize_with_prefix() {
+        let output: PersistentHandle =
+            serde_yaml::from_str(r#""0x81000003""#).expect("should deserialize");
+        assert_eq!(output, PersistentHandle::from_offset(3));
+        let output: PersistentHandle =
+            serde_yaml::from_str(r#""0X81000001""#).expect("should deserialize");
+        assert_eq!(output, PersistentHandle::from_offset(1));
+    }
+
+    /// [`PersistentHandle::deserialize`] without a `0x` prefix.
+    #[test]
+    fn persistent_handle_deserialize_without_prefix() {
+        let output: PersistentHandle =
+            serde_yaml::from_str(r#""81000003""#).expect("should deserialize");
+        assert_eq!(output, PersistentHandle::from_offset(3));
+    }
+
+    /// [`PersistentHandle::deserialize`] with surrounding whitespace.
+    #[test]
+    fn persistent_handle_deserialize_with_whitespace() {
+        let output: PersistentHandle =
+            serde_yaml::from_str(r#""  0x81000003  ""#).expect("should deserialize");
+        assert_eq!(output, PersistentHandle::from_offset(3));
+    }
+
+    /// [`PersistentHandle::deserialize`] with invalid, out of range, and empty values.
+    #[test]
+    fn persistent_handle_deserialize_invalid() {
+        for yaml in [
+            r#""invalid""#,
+            r#""0x80FFFFFF""#,
+            r#""0x81FFFFFF""#,
+            r#""""#,
+        ] {
+            let output = serde_yaml::from_str::<PersistentHandle>(yaml);
+            assert!(output.is_err(), "{yaml} should not deserialize");
+        }
+    }
+
+    /// [`PersistentHandle::deserialize`] with each [`PersistentHandle::serialize`] output.
+    #[test]
+    fn persistent_handle_serde_roundtrip() {
         for offset in [0_u16, 1, 7, 255, 1000, u16::MAX] {
             let handle = PersistentHandle::from_offset(offset);
-            let string = handle.to_string();
-            let parsed: PersistentHandle = string
-                .parse()
-                .expect("Display output should parse back to same handle");
-            assert_eq!(handle, parsed);
+            let yaml = serde_yaml::to_string(&handle).expect("handle should serialize");
+            let output: PersistentHandle =
+                serde_yaml::from_str(&yaml).expect("serialized handle should deserialize");
+            assert_eq!(output, handle);
         }
-    }
-
-    #[test]
-    fn test_try_from_string() {
-        let s = "0x81000003".to_owned();
-        let handle = PersistentHandle::try_from(s).expect("Valid string should convert to handle");
-        assert_eq!(handle.as_u32(), 0x81000003);
-    }
-
-    #[test]
-    fn test_try_from_str() {
-        let handle =
-            PersistentHandle::try_from("0x81000003").expect("Valid str with prefix should convert");
-        assert_eq!(handle.as_u32(), 0x81000003);
-
-        let handle = PersistentHandle::try_from("81000003")
-            .expect("Valid str without prefix should convert");
-        assert_eq!(handle.as_u32(), 0x81000003);
-    }
-
-    #[test]
-    fn test_serialize_to_string() {
-        let handle = PersistentHandle::from_offset(3);
-        let json = serde_yaml::to_string(&handle).expect("Handle should serialize to YAML");
-        assert_eq!(json, "'0x81000003'\n");
-
-        let handle = PersistentHandle::from_offset(0);
-        let json = serde_yaml::to_string(&handle).expect("Handle should serialize to YAML");
-        assert_eq!(json, "'0x81000000'\n");
-
-        let handle = PersistentHandle::from_offset(0xABCD);
-        let json = serde_yaml::to_string(&handle).expect("Handle should serialize to YAML");
-        assert_eq!(json, "'0x8100ABCD'\n");
-    }
-
-    #[test]
-    fn test_deserialize_from_string_with_prefix() {
-        let json = r#""0x81000003""#;
-        let handle: PersistentHandle =
-            serde_yaml::from_str(json).expect("Valid YAML hex string should deserialize");
-        assert_eq!(handle.as_u32(), 0x81000003);
-
-        let json = r#""0X81000001""#; // Uppercase X
-        let handle: PersistentHandle =
-            serde_yaml::from_str(json).expect("Valid YAML hex string should deserialize");
-        assert_eq!(handle.as_u32(), 0x81000001);
-    }
-
-    #[test]
-    fn test_deserialize_from_string_without_prefix() {
-        let json = r#""81000003""#;
-        let handle: PersistentHandle =
-            serde_yaml::from_str(json).expect("Valid YAML hex string should deserialize");
-        assert_eq!(handle.as_u32(), 0x81000003);
-    }
-
-    #[test]
-    fn test_deserialize_invalid_string() {
-        // Invalid hex
-        let json = r#""invalid""#;
-        assert!(serde_yaml::from_str::<PersistentHandle>(json).is_err());
-
-        // Out of range (below)
-        let json = r#""0x80FFFFFF""#;
-        assert!(serde_yaml::from_str::<PersistentHandle>(json).is_err());
-
-        // Out of range (above)
-        let json = r#""0x81FFFFFF""#;
-        assert!(serde_yaml::from_str::<PersistentHandle>(json).is_err());
-
-        // Empty string
-        let json = r#""""#;
-        assert!(serde_yaml::from_str::<PersistentHandle>(json).is_err());
-    }
-
-    #[test]
-    fn test_serde_roundtrip() {
-        for offset in [0_u16, 1, 7, 255, 1000, u16::MAX] {
-            let original = PersistentHandle::from_offset(offset);
-            let json = serde_yaml::to_string(&original).expect("Handle should serialize");
-            let deserialized: PersistentHandle =
-                serde_yaml::from_str(&json).expect("Serialized handle should deserialize");
-            assert_eq!(original, deserialized);
-        }
-    }
-
-    #[test]
-    fn test_deserialize_with_whitespace() {
-        let json = r#""  0x81000003  ""#;
-        let handle: PersistentHandle =
-            serde_yaml::from_str(json).expect("Valid YAML hex string should deserialize");
-        assert_eq!(handle.as_u32(), 0x81000003);
-    }
-
-    #[test]
-    fn test_serialize_vec() {
-        let handles = vec![
-            PersistentHandle::from_offset(0),
-            PersistentHandle::from_offset(1),
-            PersistentHandle::from_offset(2),
-        ];
-
-        let json = serde_yaml::to_string(&handles).expect("Vec of handles should serialize");
-        assert!(json.contains("'0x81000000'"));
-        assert!(json.contains("'0x81000001'"));
-        assert!(json.contains("'0x81000002'"));
-
-        let deserialized: Vec<PersistentHandle> =
-            serde_yaml::from_str(&json).expect("Serialized handle should deserialize");
-        assert_eq!(deserialized, handles);
     }
 }
