@@ -1,0 +1,29 @@
+[package]
+name = "mount-luks"
+version.workspace = true
+edition.workspace = true
+description = "Unlock and mount LUKS encrypted disks"
+
+[dependencies]
+dirs = { workspace = true }
+nix = { workspace = true }
+owo-colors = { workspace = true }
+rpassword = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+strum = { workspace = true }
+studiole-di = { workspace = true }
+studiole-logging = { workspace = true }
+studiole-report = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+usage-rs = { workspace = true }
+
+[dev-dependencies]
+chrono = { workspace = true }
+insta = { workspace = true }
+mockall = { workspace = true }
+usage-rs = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true

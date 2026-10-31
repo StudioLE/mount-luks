@@ -1,39 +1,35 @@
-[package]
-name = "mount-luks"
+[workspace]
+resolver = "3"
+members = [
+  "crates/mount-luks",
+]
+
+[workspace.package]
 version = "0.0.0"
 edition = "2024"
-description = "Unlock and mount LUKS encrypted disks"
 
-[dependencies]
-dirs = "7.0.0"
+[workspace.dependencies]
+chrono = { version = "0.4.45" }
+dirs = { version = "7.0.0" }
+insta = { version = "1.48.0" }
+mockall = { version = "0.15.0" }
 nix = { version = "0.31.3", features = ["user"] }
-owo-colors = "4.4.0"
-rpassword = "7.5.4"
+owo-colors = { version = "4.4.0" }
+rpassword = { version = "7.5.4" }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_yaml = "0.9.34"
+serde_yaml = { version = "0.9.34" }
 strum = { version = "0.28.0", features = ["derive"] }
 studiole-di = { version = "0.6.0", features = ["traits"] }
 studiole-logging = { version = "0.5.0", features = ["usage"] }
 studiole-report = { version = "0.4.1", features = ["render"] }
-thiserror = "2.0.20"
-tracing = "0.1.44"
+thiserror = { version = "2.0.20" }
+tracing = { version = "0.1.44" }
 usage-rs = { version = "7.0.2" }
 
-[dev-dependencies]
-chrono = { version = "0.4.45" }
-insta = { version = "1.48.0" }
-mockall = { version = "0.15.0" }
-usage-rs = { version = "7.0.2", features = ["test"] }
-
-[lints.rust]
+[workspace.lints.rust]
 missing_docs = "warn"
 
-[lints.rustdoc]
-bare_urls = "warn"
-broken_intra_doc_links = "warn"
-invalid_html_tags = "warn"
-
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 absolute_paths = "warn"
 arithmetic_side_effects = "allow"
@@ -90,3 +86,8 @@ used_underscore_items = "allow"
 wildcard_enum_match_arm = "allow"
 wildcard_imports = "allow"
 wrong_self_convention = "allow"
+
+[workspace.lints.rustdoc]
+bare_urls = "warn"
+broken_intra_doc_links = "warn"
+invalid_html_tags = "warn"
