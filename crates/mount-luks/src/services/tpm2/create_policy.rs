@@ -1,3 +1,5 @@
+//! Create a TPM PCR policy with `tpm2_createpolicy`.
+
 use crate::prelude::*;
 
 /// Create a TPM PCR policy.

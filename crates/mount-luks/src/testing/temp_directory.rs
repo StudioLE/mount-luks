@@ -1,3 +1,5 @@
+//! Temporary directories for tests.
+
 #![expect(
     dead_code,
     reason = "test-only module, not all helpers used in every test"

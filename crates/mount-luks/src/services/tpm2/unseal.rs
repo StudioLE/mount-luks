@@ -1,3 +1,5 @@
+//! Unseal data from a TPM object with `tpm2_unseal`.
+
 use crate::prelude::*;
 
 /// Unseal data from a TPM object.

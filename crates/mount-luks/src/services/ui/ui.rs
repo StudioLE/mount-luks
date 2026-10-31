@@ -1,3 +1,5 @@
+//! Application header and error display.
+
 use crate::prelude::*;
 use owo_colors::OwoColorize;
 

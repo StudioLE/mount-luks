@@ -1,3 +1,5 @@
+//! Check a partition is encrypted with LUKS using `cryptsetup isLuks`.
+
 use crate::prelude::*;
 
 /// Check if a partition is encrypted with LUKS.
@@ -30,8 +32,10 @@ pub enum CheckLuksError {
     /// Unable to start `cryptsetup isLuks` or exchange data with it.
     #[error("Unable to run `cryptsetup isLuks`")]
     Run,
+    /// `cryptsetup isLuks` exited with an error and no output.
     #[error("Partition is not encrypted with LUKS")]
     NotLuks,
+    /// `cryptsetup isLuks` exited with an error and printed output.
     #[error("Unable to determine if encrypted with LUKS")]
     Unexpected,
 }

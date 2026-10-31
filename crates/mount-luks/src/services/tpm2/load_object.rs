@@ -1,3 +1,5 @@
+//! Load a TPM object with `tpm2_load`.
+
 use crate::prelude::*;
 
 /// Load a TPM object.

@@ -1,3 +1,5 @@
+//! Parsed CLI arguments registered in the service container.
+
 use crate::prelude::*;
 use usage_rs::Cli as UsageCli;
 

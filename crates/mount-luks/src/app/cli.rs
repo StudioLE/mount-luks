@@ -1,3 +1,5 @@
+//! CLI bootstrapping and service initialization.
+
 use crate::prelude::*;
 use std::process::ExitCode;
 

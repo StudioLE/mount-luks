@@ -1,3 +1,5 @@
+//! Add a key to a LUKS partition with `cryptsetup luksAddKey`.
+
 use crate::prelude::*;
 
 /// Add a key to a LUKS partition.

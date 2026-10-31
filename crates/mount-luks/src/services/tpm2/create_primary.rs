@@ -1,3 +1,5 @@
+//! Create a TPM primary key with `tpm2_createprimary`.
+
 use crate::prelude::*;
 
 /// Create a TPM primary key.

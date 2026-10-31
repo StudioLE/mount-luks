@@ -1,3 +1,5 @@
+//! Create a sealed TPM object with `tpm2_create`.
+
 use crate::prelude::*;
 
 /// Create a sealed TPM object.

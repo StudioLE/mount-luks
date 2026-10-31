@@ -1,3 +1,5 @@
+//! Persist a TPM object with `tpm2_evictcontrol`.
+
 use crate::prelude::*;
 
 /// Make a TPM object persistent.

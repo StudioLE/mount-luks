@@ -1,3 +1,5 @@
+//! Adapter for the `cryptsetup` CLI.
+
 use crate::prelude::*;
 
 /// Adapter wrapping the `cryptsetup` CLI tool.

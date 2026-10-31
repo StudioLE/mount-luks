@@ -1,3 +1,5 @@
+//! List persistent TPM handles with `tpm2_getcap`.
+
 use crate::prelude::*;
 
 /// Get persistent TPM handles.

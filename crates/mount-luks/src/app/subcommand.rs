@@ -1,3 +1,5 @@
+//! Subcommand variants and dispatch handler.
+
 use crate::prelude::*;
 use strum::Display;
 use usage_rs::Subcommands as UsageSubcommands;

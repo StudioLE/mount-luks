@@ -1,3 +1,5 @@
+//! Validate a key against a LUKS partition with `cryptsetup luksOpen --test-passphrase`.
+
 use crate::prelude::*;
 
 /// Validate a key against a LUKS partition.

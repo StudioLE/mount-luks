@@ -1,3 +1,5 @@
+//! Options loaded from the YAML config file.
+
 use crate::prelude::*;
 use serde::Deserialize;
 use std::fs::{self, File};
@@ -28,8 +30,12 @@ pub struct Options {
     /// Example: `0x81000000`
     pub tpm_handle: Option<PersistentHandle>,
     /// Require an interactive key prompt
+    ///
+    /// Default: `false`
     pub key_prompt: Option<bool>,
     /// Suppress the header output
+    ///
+    /// Default: `false`
     pub no_header: Option<bool>,
 }
 
@@ -151,14 +157,19 @@ pub enum OptionsError {
     /// Unable to locate the user config dir.
     #[error("Unable to locate config directory")]
     ConfigDir,
+    /// Unable to list the `mount-luks` config dir.
     #[error("Unable to read config directory")]
     ReadDir,
+    /// The config dir has no `.yaml` or `.yml` file.
     #[error("Options file does not exist")]
     NoFile,
+    /// The config dir has more than one `.yaml` or `.yml` file.
     #[error("Multiple options files found")]
     MultipleFiles,
+    /// Unable to open the options file.
     #[error("Unable to read options file")]
     Read,
+    /// The options file isn't valid YAML for [`Options`].
     #[error("Unable to deserialize options file")]
     Deserialize,
 }

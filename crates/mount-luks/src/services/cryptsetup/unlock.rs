@@ -1,3 +1,5 @@
+//! Unlock a LUKS partition with `cryptsetup luksOpen`.
+
 use crate::prelude::*;
 
 /// Unlock a LUKS partition.

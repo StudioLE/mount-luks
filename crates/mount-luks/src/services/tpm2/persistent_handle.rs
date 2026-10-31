@@ -1,8 +1,12 @@
+//! TPM persistent handle addresses.
+
 use crate::prelude::*;
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// Compact representation of a TPM persistent handle (2 bytes instead of 4)
+/// TPM persistent handle address.
+///
+/// - Stores the offset from [`PersistentHandle::BASE`] in 2 bytes instead of 4
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct PersistentHandle(u16);
 
@@ -12,13 +16,15 @@ impl PersistentHandle {
     /// Maximum offset from the base address.
     pub const MAX_OFFSET: u16 = u16::MAX;
 
-    /// Creates a handle from an offset (0-65535)
+    /// Create a [`PersistentHandle`] from an offset.
+    ///
+    /// - Accepts the full `u16` range, `0` to `65535`
     #[must_use]
     pub const fn from_offset(offset: u16) -> Self {
         Self(offset)
     }
 
-    /// Creates a handle from a full u32 value
+    /// Create a [`PersistentHandle`] from a full `u32` address.
     pub fn new(handle: u32) -> Result<Self, PersistentHandleError> {
         if handle < Self::BASE {
             return Err(PersistentHandleError::Min);
@@ -32,14 +38,14 @@ impl PersistentHandle {
         ))
     }
 
-    /// Get the full u32 handle value
+    /// Full `u32` address of the handle.
     #[expect(clippy::as_conversions, reason = "u16 to u32 widening is always safe")]
     #[must_use]
     pub const fn as_u32(self) -> u32 {
         Self::BASE + self.0 as u32
     }
 
-    /// Get the offset from base
+    /// Offset from [`PersistentHandle::BASE`].
     #[must_use]
     pub const fn offset(self) -> u16 {
         self.0
@@ -124,10 +130,13 @@ impl<'de> Deserialize<'de> for PersistentHandle {
 /// Errors returned by [`PersistentHandle`] constructors and parsers.
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum PersistentHandleError {
+    /// The address is below [`PersistentHandle::BASE`].
     #[error("Value must be greater than 0x81000000")]
     Min,
+    /// The offset from [`PersistentHandle::BASE`] doesn't fit in a `u16`.
     #[error("Value must be less than 0x81FFFFFF")]
     Max,
+    /// The value isn't a hex number.
     #[error("Invalid hex string")]
     Parse,
 }

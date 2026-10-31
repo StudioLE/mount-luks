@@ -1,3 +1,5 @@
+//! Extension trait for configuring a [`ServiceBuilder`] with application services.
+
 use crate::prelude::*;
 
 /// Register all application services on a [`ServiceBuilder`].

@@ -1,12 +1,16 @@
+//! Numbered step output for multi-step commands.
+
 use crate::prelude::*;
 use owo_colors::OwoColorize;
 
+/// Numbered progress through the steps of a command.
 pub struct Progress {
     current: usize,
     total: usize,
 }
 
 impl Progress {
+    /// Create a new [`Progress`] for a command with `total` steps.
     pub fn new(total: usize) -> Self {
         Self { current: 0, total }
     }
