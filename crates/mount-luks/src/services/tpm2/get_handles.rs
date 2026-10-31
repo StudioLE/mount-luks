@@ -13,7 +13,7 @@ impl GetHandles for Tpm2Adapter {
         let response = Command::new("tpm2_getcap")
             .arg("handles-persistent")
             .output()
-            .expect("should be able to execute `tpm2_getcap`")
+            .change_context(GetHandlesError::Run)?
             .to_response();
         if !response.status.success() {
             return Err(Report::new(GetHandlesError::Failed).attach_response(response));
@@ -32,6 +32,9 @@ impl GetHandles for Tpm2Adapter {
 /// Errors returned by [`GetHandles::get_handles`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum GetHandlesError {
+    /// Unable to start `tpm2_getcap` or exchange data with it.
+    #[error("Unable to run `tpm2_getcap`")]
+    Run,
     /// `tpm2_getcap` exited with an error.
     #[error("Unable to get persistent TPM handles")]
     Failed,

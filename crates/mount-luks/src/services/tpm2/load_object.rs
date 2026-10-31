@@ -20,7 +20,7 @@ impl LoadObject for Tpm2Adapter {
             .arg("--key-context")
             .arg(TPM_OBJ_CONTEXT_PATH.as_path())
             .output()
-            .expect("should be able to execute `tpm2_load`")
+            .change_context(LoadObjectError::Run)?
             .ok_or(LoadObjectError::Failed)
     }
 }
@@ -28,6 +28,9 @@ impl LoadObject for Tpm2Adapter {
 /// Errors returned by [`LoadObject::load_object`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum LoadObjectError {
+    /// Unable to start `tpm2_load` or exchange data with it.
+    #[error("Unable to run `tpm2_load`")]
+    Run,
     /// `tpm2_load` exited with an error.
     #[error("Unable to load object into the TPM")]
     Failed,

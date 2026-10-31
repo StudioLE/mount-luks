@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::process::Stdio;
 
 /// Unlock a LUKS partition.
 pub trait Unlock: Send + Sync {
@@ -14,14 +13,8 @@ impl Unlock for CryptsetupAdapter {
             .arg("--key-file=-")
             .arg(partition)
             .arg(mapper)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("should be able to spawn `cryptsetup luksOpen`")
-            .write_to_stdin(key)
-            .wait_with_output()
-            .expect("should be able to wait on `cryptsetup luksOpen`")
+            .output_with_input(key)
+            .change_context(UnlockError::Run)?
             .ok_or(UnlockError::Failed)
     }
 }
@@ -29,6 +22,9 @@ impl Unlock for CryptsetupAdapter {
 /// Errors returned by [`Unlock::unlock`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum UnlockError {
+    /// Unable to start `cryptsetup luksOpen` or exchange data with it.
+    #[error("Unable to run `cryptsetup luksOpen`")]
+    Run,
     /// `cryptsetup luksOpen` exited with an error.
     #[error("Failed to unlock LUKS partition")]
     Failed,

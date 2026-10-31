@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::process::Stdio;
 
 /// Create a sealed TPM object.
 ///
@@ -24,14 +23,8 @@ impl CreateObject for Tpm2Adapter {
             .arg(TPM_POLICY_PATH.as_path())
             .arg("--sealing-input")
             .arg("-")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("should be able to spawn `tpm2_create`")
-            .write_to_stdin(input)
-            .wait_with_output()
-            .expect("should be able to wait for `tpm2_create`")
+            .output_with_input(input)
+            .change_context(CreateObjectError::Run)?
             .ok_or(CreateObjectError::Failed)
     }
 }
@@ -39,6 +32,9 @@ impl CreateObject for Tpm2Adapter {
 /// Errors returned by [`CreateObject::create_object`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum CreateObjectError {
+    /// Unable to start `tpm2_create` or exchange data with it.
+    #[error("Unable to run `tpm2_create`")]
+    Run,
     /// `tpm2_create` exited with an error.
     #[error("Unable to create TPM object")]
     Failed,

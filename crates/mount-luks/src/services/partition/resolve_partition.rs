@@ -24,7 +24,7 @@ impl ResolvePartition for ResolvePartitionAdapter {
             .arg("-o")
             .arg("device")
             .output()
-            .expect("should be able to execute `blkid`")
+            .change_context(ResolvePartitionError::Run)?
             .to_response();
         if response.status.success() {
             let path = response.output.ok_or_else(|| {
@@ -46,6 +46,9 @@ impl ResolvePartition for ResolvePartitionAdapter {
 /// Errors returned by [`ResolvePartition::resolve_partition`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum ResolvePartitionError {
+    /// Unable to start `blkid` or exchange data with it.
+    #[error("Unable to run `blkid`")]
+    Run,
     /// No device matches the configured PARTUUID.
     #[error("Partition not found for PARTUUID")]
     NotFound,

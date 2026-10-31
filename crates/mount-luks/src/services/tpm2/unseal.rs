@@ -17,7 +17,7 @@ impl Unseal for Tpm2Adapter {
             .arg("--auth")
             .arg(format!("pcr:{}", *POLICY))
             .output()
-            .expect("should be able to execute `tpm2_unseal`")
+            .change_context(UnsealError::Run)?
             .to_response();
         if !response.status.success() {
             return prepare_report(response);
@@ -74,6 +74,9 @@ fn parse_code(stderr: &str) -> Option<String> {
 /// Errors returned by [`Unseal::unseal`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum UnsealError {
+    /// Unable to start `tpm2_unseal` or exchange data with it.
+    #[error("Unable to run `tpm2_unseal`")]
+    Run,
     /// A PCR changed between the policy check and the unseal.
     #[error("PCR changed during unseal")]
     PcrChanged,

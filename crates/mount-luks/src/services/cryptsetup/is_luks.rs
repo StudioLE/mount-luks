@@ -12,7 +12,7 @@ impl IsLuks for CryptsetupAdapter {
             .arg("isLuks")
             .arg(partition)
             .output()
-            .expect("should be able to execute `cryptsetup isLuks`")
+            .change_context(IsLuksError::Run)?
             .to_response();
         if response.status.success() {
             return Ok(());
@@ -27,6 +27,9 @@ impl IsLuks for CryptsetupAdapter {
 /// Errors returned by [`IsLuks::is_luks`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum IsLuksError {
+    /// Unable to start `cryptsetup isLuks` or exchange data with it.
+    #[error("Unable to run `cryptsetup isLuks`")]
+    Run,
     #[error("Partition is not encrypted with LUKS")]
     NotLuks,
     #[error("Unable to determine if encrypted with LUKS")]

@@ -17,7 +17,7 @@ impl Persist for Tpm2Adapter {
             .arg(TPM_OBJ_CONTEXT_PATH.as_path())
             .arg(handle.to_string())
             .output()
-            .expect("should be able to execute `tpm2_evictcontrol`")
+            .change_context(PersistError::Run)?
             .ok_or(PersistError::Failed)
             .attach("Handle", handle)
     }
@@ -26,6 +26,9 @@ impl Persist for Tpm2Adapter {
 /// Errors returned by [`Persist::persist`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum PersistError {
+    /// Unable to start `tpm2_evictcontrol` or exchange data with it.
+    #[error("Unable to run `tpm2_evictcontrol`")]
+    Run,
     /// `tpm2_evictcontrol` exited with an error.
     #[error("Unable to persist TPM object")]
     Failed,

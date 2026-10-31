@@ -85,7 +85,9 @@ impl FromServices for Options {
     where
         Self: Sized,
     {
-        let cli = services.expect::<CliArgs>();
+        let cli = services
+            .get::<CliArgs>()
+            .change_context(OptionsError::GetCliArgs)?;
         let path = match &cli.config {
             Some(path) => path,
             None => &get_config_path()?,
@@ -118,10 +120,11 @@ fn get_config_path() -> Result<PathBuf, Report<OptionsError>> {
 
 fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
     let dir = config_dir()
-        .expect("should be able to get config directory")
+        .ok_or_else(|| Report::new(OptionsError::ConfigDir))?
         .join(APP_NAME);
     let paths = read_dir(&dir)
-        .change_context(OptionsError::ReadDir)?
+        .change_context(OptionsError::ReadDir)
+        .attach_path(&dir)?
         .filter_map(Result::ok)
         .filter_map(|entry| {
             if let Ok(file_type) = entry.file_type()
@@ -143,6 +146,12 @@ fn get_paths() -> Result<Vec<PathBuf>, Report<OptionsError>> {
 /// Errors returned by [`Options`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum OptionsError {
+    /// Unable to resolve [`CliArgs`].
+    #[error("Unable to get CLI arguments")]
+    GetCliArgs,
+    /// Unable to locate the user config dir.
+    #[error("Unable to locate config directory")]
+    ConfigDir,
     #[error("Unable to read config directory")]
     ReadDir,
     #[error("Options file does not exist")]

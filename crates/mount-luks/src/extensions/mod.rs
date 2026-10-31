@@ -1,9 +1,9 @@
 //! Extension traits for standard library and dependency types.
 
-mod child;
+mod command;
 mod output;
 mod report;
 
-pub use child::*;
+pub use command::*;
 pub use output::*;
 pub use report::*;

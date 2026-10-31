@@ -138,6 +138,24 @@ mod tests {
         assert_eq!(report.current_context(), &SetLuksError::KeyExists);
     }
 
+    /// [`SetLuksHandler::execute`] when `cryptsetup` can't run to check the key.
+    #[test]
+    fn set_luks_handler_execute_check_key_error() {
+        // Arrange
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .with_instance(CheckKeyStub {
+                result: Err(CheckKeyError::Run),
+            })
+            .build();
+        let handler = services.expect::<SetLuksHandler>();
+        // Act
+        let output = handler.execute();
+        // Assert
+        let report = output.expect_err("should not be able to add a key without checking it");
+        assert_eq!(report.current_context(), &SetLuksError::CheckKey);
+    }
+
     /// [`SetLuksHandler::execute`] when the partition isn't encrypted with LUKS.
     #[test]
     fn set_luks_handler_execute_not_luks() {

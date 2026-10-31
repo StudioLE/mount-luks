@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::process::Stdio;
 
 /// Add a key to a LUKS partition.
 pub trait AddKey: Send + Sync {
@@ -23,14 +22,8 @@ impl AddKey for CryptsetupAdapter {
         Command::new("cryptsetup")
             .arg("luksAddKey")
             .arg(partition)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("should be able to spawn `cryptsetup luksAddKey`")
-            .write_to_stdin(&input)
-            .wait_with_output()
-            .expect("should be able to wait on `cryptsetup luksAddKey`")
+            .output_with_input(&input)
+            .change_context(AddKeyError::Run)?
             .ok_or(AddKeyError::Failed)
     }
 }
@@ -38,6 +31,9 @@ impl AddKey for CryptsetupAdapter {
 /// Errors returned by [`AddKey::add_key`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum AddKeyError {
+    /// Unable to start `cryptsetup luksAddKey` or exchange data with it.
+    #[error("Unable to run `cryptsetup luksAddKey`")]
+    Run,
     /// `cryptsetup luksAddKey` exited with an error.
     #[error("Failed to add LUKS key")]
     Failed,

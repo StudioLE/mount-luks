@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::process::Stdio;
 
 /// Validate a key against a LUKS partition.
 pub trait CheckKey: Send + Sync {
@@ -14,14 +13,8 @@ impl CheckKey for CryptsetupAdapter {
             .arg("--test-passphrase")
             .arg("--key-file=-")
             .arg(partition)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("should be able to spawn `cryptsetup luksOpen --test-passphrase`")
-            .write_to_stdin(key)
-            .wait_with_output()
-            .expect("should be able to wait on `cryptsetup luksOpen --test-passphrase`")
+            .output_with_input(key)
+            .change_context(CheckKeyError::Run)?
             .ok_or(CheckKeyError::Incorrect)
     }
 }
@@ -29,6 +22,9 @@ impl CheckKey for CryptsetupAdapter {
 /// Errors returned by [`CheckKey::check_key`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum CheckKeyError {
+    /// Unable to start `cryptsetup luksOpen --test-passphrase` or exchange data with it.
+    #[error("Unable to run `cryptsetup luksOpen --test-passphrase`")]
+    Run,
     /// The key doesn't unlock the partition.
     #[error("Key is incorrect")]
     Incorrect,

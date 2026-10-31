@@ -18,7 +18,7 @@ impl CreatePrimary for Tpm2Adapter {
             .arg("--key-context")
             .arg(TPM_PRIMARY_CONTEXT_PATH.as_path())
             .output()
-            .expect("should be able to execute `tpm2_createprimary`")
+            .change_context(CreatePrimaryError::Run)?
             .ok_or(CreatePrimaryError::Failed)
     }
 }
@@ -26,6 +26,9 @@ impl CreatePrimary for Tpm2Adapter {
 /// Errors returned by [`CreatePrimary::create_primary`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum CreatePrimaryError {
+    /// Unable to start `tpm2_createprimary` or exchange data with it.
+    #[error("Unable to run `tpm2_createprimary`")]
+    Run,
     /// `tpm2_createprimary` exited with an error.
     #[error("Unable to create TPM primary key")]
     Failed,

@@ -18,7 +18,7 @@ impl FindMount for FindmntAdapter {
             .arg("--noheadings")
             .arg(mount_path)
             .output()
-            .expect("should be able to execute `findmnt`")
+            .change_context(FindMountError::Run)?
             .to_response();
         if response.status.success() {
             Err(Report::new(FindMountError::AlreadyMounted).attach_path(mount_path))
@@ -31,6 +31,9 @@ impl FindMount for FindmntAdapter {
 /// Errors returned by [`FindMount::check_not_mounted`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum FindMountError {
+    /// Unable to start `findmnt` or exchange data with it.
+    #[error("Unable to run `findmnt`")]
+    Run,
     /// The mount path is already mounted.
     #[error("Partition is already mounted")]
     AlreadyMounted,

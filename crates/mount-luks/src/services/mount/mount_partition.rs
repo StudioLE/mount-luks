@@ -18,7 +18,7 @@ impl MountPartition for MountAdapter {
             .arg(device)
             .arg(mount_path)
             .output()
-            .expect("should be able to execute `mount`")
+            .change_context(MountPartitionError::Run)?
             .ok_or(MountPartitionError::Failed)
     }
 }
@@ -26,6 +26,9 @@ impl MountPartition for MountAdapter {
 /// Errors returned by [`MountPartition::mount`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum MountPartitionError {
+    /// Unable to start `mount` or exchange data with it.
+    #[error("Unable to run `mount`")]
+    Run,
     /// `mount` exited with an error.
     #[error("Failed to mount partition")]
     Failed,
